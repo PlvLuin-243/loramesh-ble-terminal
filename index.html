@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LoRaMesh Terminal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { background: #121212; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; }
+        #console { background: #000; height: 300px; padding: 10px; border: 1px solid #333; overflow-y: auto; margin-bottom: 10px; }
+        input { background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px; width: calc(100% - 100px); }
+        button { padding: 10px; background: #00ff41; color: #000; border: none; cursor: pointer; font-weight: bold; }
+        .sys { color: #888; }
+        .esp { color: #569cd6; }
+    </style>
+</head>
+<body>
+    <h3>LoRaMesh BLE Terminal</h3>
+    <button onclick="connect()">KẾT NỐI</button>
+    <div id="console"></div>
+    <input type="text" id="input" placeholder="Nhập lệnh AT...">
+    <button onclick="send()">GỬI</button>
+
+    <script>
+        const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+        const TX_UUID      = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // Web Write -> ESP RX
+        const RX_UUID      = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // ESP TX -> Web Notify
+
+        let charTX, device;
+
+        function print(msg, type) {
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerText = (type === 'esp' ? '<< ' : '>> ') + msg;
+            const consoleDiv = document.getElementById('console');
+            consoleDiv.appendChild(div);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        async function connect() {
+            try {
+                print("Đang quét...", "sys");
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: [SERVICE_UUID] }]
+                });
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(SERVICE_UUID);
+                charTX = await service.getCharacteristic(TX_UUID);
+                const charRX = await service.getCharacteristic(RX_UUID);
+
+                await charRX.startNotifications();
+                charRX.addEventListener('characteristicvaluechanged', (e) => {
+                    let val = new TextDecoder().decode(e.target.value);
+                    print(val, "esp");
+                });
+                print("Đã kết nối: " + device.name, "sys");
+            } catch (err) { print("Lỗi: " + err, "sys"); }
+        }
+
+        async function send() {
+            const val = document.getElementById('input').value;
+            if (charTX && val) {
+                await charTX.writeValue(new TextEncoder().encode(val + "\r\n"));
+                print(val, "me");
+                document.getElementById('input').value = "";
+            }
+        }
+    </script>
+</body>
+</html>
