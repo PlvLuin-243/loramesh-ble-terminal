@@ -77,6 +77,53 @@
             min-width: 0;
         }
 
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .chat-header.hidden { display: none !important; }
+
+        .chat-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            user-select: none;
+            flex: 0 0 auto;
+        }
+
+        .chat-header-main {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.15;
+        }
+
+        .chat-header-name {
+            font-size: 16px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .chat-header-sub {
+            margin-top: 3px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.75);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .header-title h1 {
             margin: 0;
             font-size: 18px;
@@ -416,6 +463,14 @@
                     <span id="statusLabel">Disconnected</span>
                 </div>
             </div>
+
+            <div id="chatHeader" class="chat-header hidden" aria-live="polite">
+                <div id="chatAvatar" class="chat-avatar" aria-hidden="true">?</div>
+                <div class="chat-header-main">
+                    <div id="chatHeaderName" class="chat-header-name">Chat</div>
+                    <div id="chatHeaderSub" class="chat-header-sub"></div>
+                </div>
+            </div>
         </div>
 
         <button id="connectBtn" class="btn-connect" type="button" onclick="connectBLE()">
@@ -524,6 +579,11 @@
             document.getElementById('headerTitle').textContent = 'LoRaMesh';
             activeKey = null;
 
+            // Header mode: contacts
+            document.querySelector('.header-title').classList.remove('hidden');
+            document.getElementById('chatHeader').classList.add('hidden');
+            document.getElementById('connectBtn').classList.remove('hidden');
+
             // If we're connected but still haven't received any contacts, keep showing the spinner.
             setContactsLoading(isBleConnected() && contacts.size === 0, 'Waiting for contacts...');
         }
@@ -536,8 +596,21 @@
 
             unreadCounts.set(key, 0);
 
+            // Header mode: chat (show selected contact instead of status/connect UI)
+            document.querySelector('.header-title').classList.add('hidden');
+            document.getElementById('chatHeader').classList.remove('hidden');
+            document.getElementById('connectBtn').classList.add('hidden');
+
             const c = contacts.get(key);
-            document.getElementById('headerTitle').textContent = c?.name || 'Chat';
+            document.getElementById('chatHeaderName').textContent = c?.name || 'Chat';
+            document.getElementById('chatHeaderSub').textContent = c?.pubkey ? formatPubkey(c.pubkey) : '';
+            const chatAvatar = document.getElementById('chatAvatar');
+            chatAvatar.style.background = c?.color || hashColor(key);
+            chatAvatar.textContent = (c?.name || '?').trim().slice(0, 1).toUpperCase();
+
+            // Update unread badges immediately.
+            renderContacts();
+
             renderChat(key);
             document.getElementById('at-input').focus();
         }
