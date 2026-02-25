@@ -1,68 +1,881 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>LoRaMesh Terminal</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>MeshCore BLE Terminal</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
     <style>
-        body { background: #121212; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; }
-        #console { background: #000; height: 300px; padding: 10px; border: 1px solid #333; overflow-y: auto; margin-bottom: 10px; }
-        input { background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px; width: calc(100% - 100px); }
-        button { padding: 10px; background: #00ff41; color: #000; border: none; cursor: pointer; font-weight: bold; }
-        .sys { color: #888; }
-        .esp { color: #569cd6; }
+        :root {
+            --header: #2c3e50;
+            --bg: #e5ddd5;
+            --surface: #ffffff;
+            --border: #e3e3e3;
+            --muted: #6b7280;
+            --me: #dcf8c6;
+            --sys: rgba(0,0,0,0.10);
+            --danger: #e74c3c;
+            --ok: #2ecc71;
+            --contact-bg: #ffffff;
+            --contact-hover: rgba(0,0,0,0.03);
+            --contact-sub: rgba(0,0,0,0.55);
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body { height: 100%; }
+
+        body {
+            font-family: 'Roboto', system-ui, -apple-system, Segoe UI, Arial, sans-serif;
+            margin: 0;
+            background: var(--bg);
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overscroll-behavior: none;
+        }
+
+        header {
+            background: var(--header);
+            color: #fff;
+            padding: calc(12px + env(safe-area-inset-top)) 15px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.22);
+            gap: 12px;
+        }
+
+        .left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            flex: 1;
+        }
+
+        .btn-back {
+            width: 40px;
+            height: 40px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-back:active { background: rgba(255,255,255,0.12); }
+
+        .btn-back .material-icons { font-size: 22px; }
+
+        .header-title {
+            min-width: 0;
+        }
+
+        .header-title h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+            letter-spacing: 0.2px;
+        }
+
+        .header-title .sub {
+            margin-top: 2px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.75);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .status-dot {
+            height: 8px;
+            width: 8px;
+            background: var(--danger);
+            border-radius: 50%;
+            display: inline-block;
+            flex: 0 0 auto;
+            box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.22);
+        }
+
+        .status-dot.ok {
+            background: var(--ok);
+            box-shadow: 0 0 0 3px rgba(46, 204, 113, 0.22);
+        }
+
+        .btn-connect {
+            background: #fff;
+            color: var(--header);
+            border: none;
+            padding: 8px 14px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.06s ease, background-color 0.15s ease;
+            flex: 0 0 auto;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-connect:active {
+            transform: translateY(1px);
+            background: #ecf0f1;
+        }
+
+        .btn-connect .material-icons {
+            font-size: 18px;
+            margin-right: 6px;
+        }
+
+        /* Screens */
+        .screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Contacts */
+        #contacts {
+            background: var(--contact-bg);
+            position: relative;
+        }
+
+        .contacts-top {
+            background: #fff;
+            border-bottom: 1px solid var(--border);
+            padding: 10px 15px;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .search {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid #e6e6e6;
+            background: #fafafa;
+            border-radius: 999px;
+            padding: 10px 12px;
+        }
+
+        .search .material-icons {
+            font-size: 20px;
+            color: rgba(0,0,0,0.55);
+            flex: 0 0 auto;
+        }
+
+        .search input {
+            border: none;
+            outline: none;
+            background: transparent;
+            width: 100%;
+            font-size: 14px;
+            color: rgba(0,0,0,0.82);
+            min-width: 0;
+        }
+
+        .search input::placeholder {
+            color: rgba(0,0,0,0.45);
+        }
+
+        .contacts-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: #fff;
+            color: rgba(0,0,0,0.65);
+            padding: 18px 15px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 3px solid rgba(0,0,0,0.12);
+            border-top-color: rgba(0,0,0,0.55);
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .overlay-text {
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .contact-list {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            scrollbar-gutter: stable;
+        }
+
+        .contact-row {
+            display: grid;
+            grid-template-columns: 44px 1fr;
+            gap: 12px;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            background: #fff;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .contact-row:hover { background: var(--contact-hover); }
+        .contact-row:active { background: rgba(0,0,0,0.05); }
+
+        .avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            color: #fff;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+            user-select: none;
+        }
+
+        .contact-main {
+            min-width: 0;
+        }
+
+        .contact-name {
+            font-size: 15px;
+            font-weight: 500;
+            color: rgba(0,0,0,0.88);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .contact-sub {
+            margin-top: 2px;
+            font-size: 12px;
+            color: var(--contact-sub);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .empty {
+            padding: 18px 15px;
+            color: rgba(0,0,0,0.60);
+            font-size: 13px;
+        }
+
+        #chat-window {
+            flex: 1;
+            padding: 14px 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding-bottom: calc(14px + env(safe-area-inset-bottom));
+            background: #fff;
+            min-height: 0;
+        }
+
+        .msg {
+            max-width: min(80%, 520px);
+            padding: 9px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.35;
+            word-wrap: break-word;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+        }
+
+        .msg.me {
+            align-self: flex-end;
+            background: var(--me);
+            color: #000;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg.esp {
+            align-self: flex-start;
+            background: #f1f1f1;
+            color: #222;
+            border-bottom-left-radius: 4px;
+        }
+
+        .msg.sys {
+            align-self: center;
+            background: var(--sys);
+            color: rgba(0,0,0,0.7);
+            font-size: 12px;
+            border-radius: 6px;
+            box-shadow: none;
+        }
+
+        .input-bar {
+            background: var(--surface);
+            padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-top: 1px solid var(--border);
+        }
+
+        .input-bar input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 999px;
+            padding: 11px 14px;
+            outline: none;
+            font-size: 15px;
+            background: #fff;
+            min-width: 0;
+        }
+
+        .btn-send {
+            color: var(--header);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-send:active { background: rgba(0,0,0,0.06); }
+
+        .btn-send .material-icons { font-size: 22px; }
+
+        @media (max-width: 380px) {
+            .header-title h1 { font-size: 17px; }
+            .btn-connect { padding: 8px 12px; }
+            .msg { max-width: 86%; }
+        }
     </style>
 </head>
+
 <body>
-    <h3>LoRaMesh BLE Terminal</h3>
-    <button onclick="connect()">KẾT NỐI</button>
-    <div id="console"></div>
-    <input type="text" id="input" placeholder="Nhập lệnh AT...">
-    <button onclick="send()">GỬI</button>
+    <header>
+        <div class="left">
+            <div id="backBtn" class="btn-back hidden" role="button" tabindex="0" aria-label="Back" onclick="showContacts()" onkeydown="if(event.key==='Enter'||event.key===' ') showContacts()">
+                <i class="material-icons" aria-hidden="true">arrow_back</i>
+            </div>
+
+            <div class="header-title">
+                <h1 id="headerTitle">LoRaMesh</h1>
+                <div class="sub">
+                    <span class="status-dot" id="dot" aria-hidden="true"></span>
+                    <span id="statusLabel">Disconnected</span>
+                </div>
+            </div>
+        </div>
+
+        <button id="connectBtn" class="btn-connect" type="button" onclick="connectBLE()">
+            <i class="material-icons" aria-hidden="true">bluetooth</i>
+            <span id="connectLabel">Connect</span>
+        </button>
+    </header>
+
+    <!-- Screen 1: Contacts -->
+    <div id="contacts" class="screen">
+        <div id="contactsOverlay" class="contacts-overlay hidden" aria-live="polite">
+            <div class="spinner" aria-hidden="true"></div>
+            <div id="contactsOverlayText" class="overlay-text">Waiting for contacts...</div>
+        </div>
+
+        <div class="contacts-top">
+            <div class="search" role="search">
+                <i class="material-icons" aria-hidden="true">search</i>
+                <input id="contactSearch" type="text" placeholder="Search contact..." autocomplete="off" spellcheck="false" />
+            </div>
+        </div>
+        <div id="contactList" class="contact-list" role="list"></div>
+        <div id="emptyContacts" class="empty hidden">No contacts yet.</div>
+    </div>
+
+    <!-- Screen 2: Chat -->
+    <div id="chat" class="screen hidden">
+        <div id="chat-window" aria-label="Terminal output"></div>
+
+        <div class="input-bar">
+            <input
+                type="text"
+                id="at-input"
+                placeholder="Message..."
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+            />
+            <div class="btn-send" role="button" tabindex="0" aria-label="Send" onclick="sendData()" onkeydown="if(event.key==='Enter'||event.key===' ') sendData()">
+                <i class="material-icons" aria-hidden="true">send</i>
+            </div>
+        </div>
+    </div>
 
     <script>
         const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
         const TX_UUID      = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // Web Write -> ESP RX
         const RX_UUID      = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // ESP TX -> Web Notify
 
-        let charTX, device;
+        let charTX;
+        let charRX;
+        let device;
 
-        function print(msg, type) {
-            const div = document.createElement('div');
-            div.className = type;
-            div.innerText = (type === 'esp' ? '<< ' : '>> ') + msg;
-            const consoleDiv = document.getElementById('console');
-            consoleDiv.appendChild(div);
-            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        const SYSTEM_KEY = '__system__';
+        const contacts = new Map(); // key -> { name, pubkey, color }
+        const histories = new Map(); // key -> Array<{ text, type }>
+        let activeKey = null;
+        let incomingBuffer = '';
+        let contactsLoading = false;
+        let contactOrderCounter = 0;
+        let contactSearchQuery = '';
+
+        function addMessage(text, type, keyOverride) {
+            const key = keyOverride || activeKey || SYSTEM_KEY;
+            if (!histories.has(key)) histories.set(key, []);
+            histories.get(key).push({ text, type: type || 'sys' });
+
+            // Only render if we are currently viewing this chat.
+            if (document.getElementById('chat').classList.contains('hidden')) return;
+            if (key !== activeKey) return;
+            appendMessageToDom(text, type);
         }
 
-        async function connect() {
+        function appendMessageToDom(text, type) {
+            const chatWindow = document.getElementById('chat-window');
+            const div = document.createElement('div');
+            div.className = `msg ${type || 'sys'}`;
+            div.innerText = text;
+            chatWindow.appendChild(div);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function renderChat(key) {
+            const chatWindow = document.getElementById('chat-window');
+            chatWindow.innerHTML = '';
+            const items = histories.get(key) || [];
+            for (const m of items) {
+                appendMessageToDom(m.text, m.type);
+            }
+        }
+
+        function setStatus(connected, statusText) {
+            const dot = document.getElementById('dot');
+            const statusLabel = document.getElementById('statusLabel');
+            const connectLabel = document.getElementById('connectLabel');
+            dot.classList.toggle('ok', connected);
+            statusLabel.textContent = statusText || (connected ? 'Connected' : 'Disconnected');
+            connectLabel.textContent = connected ? 'Disconnect' : 'Connect';
+        }
+
+        function showContacts() {
+            document.getElementById('contacts').classList.remove('hidden');
+            document.getElementById('chat').classList.add('hidden');
+            document.getElementById('backBtn').classList.add('hidden');
+            document.getElementById('headerTitle').textContent = 'LoRaMesh';
+            activeKey = null;
+
+            // If we're connected but still haven't received any contacts, keep showing the spinner.
+            setContactsLoading(isBleConnected() && contacts.size === 0, 'Waiting for contacts...');
+        }
+
+        function showChat(key) {
+            activeKey = key;
+            document.getElementById('contacts').classList.add('hidden');
+            document.getElementById('chat').classList.remove('hidden');
+            document.getElementById('backBtn').classList.remove('hidden');
+
+            const c = contacts.get(key);
+            document.getElementById('headerTitle').textContent = c?.name || 'Chat';
+            renderChat(key);
+            document.getElementById('at-input').focus();
+        }
+
+        function hashColor(input) {
+            let h = 0;
+            const s = String(input || 'x');
+            for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+            const hue = h % 360;
+            return `hsl(${hue} 70% 45%)`;
+        }
+
+        function formatPubkey(pubkey) {
+            const s = String(pubkey || '');
+            if (s.length <= 16) return `<${s}>`;
+            return `<${s.slice(0, 8)}...${s.slice(-8)}>`;
+        }
+
+        function pubkeyPrefix(pubkey) {
+            const raw = String(pubkey || '').trim();
+            const clean = raw.replace(/[^0-9a-zA-Z]/g, '');
+            const PREFIX_LEN = 12;
+            if (!clean) return '';
+            return clean.slice(0, PREFIX_LEN);
+        }
+
+        function injectPrefixAfterEquals(command, prefix) {
+            const s = String(command || '');
+            const p = String(prefix || '');
+            if (!p) return s;
+
+            const eq = s.indexOf('=');
+            if (eq === -1) return s;
+
+            const head = s.slice(0, eq + 1);
+            const tail = s.slice(eq + 1);
+
+            // If the payload already looks like "prefix,rest" don't change it.
+            if (tail.includes(',')) return s;
+
+            return `${head}${p},${tail}`;
+        }
+
+        function resetContacts() {
+            contacts.clear();
+            contactOrderCounter = 0;
+            // Keep only system history.
+            for (const key of Array.from(histories.keys())) {
+                if (key !== SYSTEM_KEY) histories.delete(key);
+            }
+            activeKey = null;
+            renderContacts();
+        }
+
+        function ensureContact(name, pubkey) {
+            const key = pubkey;
+            if (contacts.has(key)) {
+                // Update name if it changed.
+                const existing = contacts.get(key);
+                if (existing && existing.name !== name) {
+                    contacts.set(key, { ...existing, name });
+                    renderContacts();
+                }
+                return;
+            }
+
+            const order = ++contactOrderCounter;
+            contacts.set(key, { name, pubkey, color: hashColor(pubkey), order });
+            if (!histories.has(key)) histories.set(key, []);
+            if (contactsLoading) {
+                setContactsLoading(false);
+            } else {
+                renderContacts();
+            }
+        }
+
+        function setContactsLoading(loading, text) {
+            // Only show the waiting overlay when we have not received any contacts yet.
+            contactsLoading = Boolean(loading) && contacts.size === 0;
+            const overlay = document.getElementById('contactsOverlay');
+            const overlayText = document.getElementById('contactsOverlayText');
+            if (text) overlayText.textContent = text;
+            overlay.classList.toggle('hidden', !contactsLoading);
+            renderContacts();
+        }
+
+        function renderContacts() {
+            const list = document.getElementById('contactList');
+            const empty = document.getElementById('emptyContacts');
+            list.innerHTML = '';
+
+            // Newest contacts should appear on top.
+            const allItems = Array.from(contacts.values()).sort((a, b) => (b.order || 0) - (a.order || 0));
+
+            const q = String(contactSearchQuery || '').trim().toLowerCase();
+            const items = q
+                ? allItems.filter((c) => {
+                    const name = String(c.name || '').toLowerCase();
+                    const pk = String(c.pubkey || '').toLowerCase();
+                    return name.includes(q) || pk.includes(q);
+                })
+                : allItems;
+
+            if (allItems.length === 0) {
+                empty.classList.toggle('hidden', contactsLoading);
+                return;
+            }
+
+            empty.classList.toggle('hidden', true);
+
+            if (items.length === 0) {
+                // Contacts exist but none match search.
+                const div = document.createElement('div');
+                div.className = 'empty';
+                div.textContent = 'No contacts match your search.';
+                list.appendChild(div);
+                return;
+            }
+
+            for (const c of items) {
+                const row = document.createElement('div');
+                row.className = 'contact-row';
+                row.setAttribute('role', 'listitem');
+                row.tabIndex = 0;
+                row.addEventListener('click', () => showChat(c.pubkey));
+                row.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        showChat(c.pubkey);
+                    }
+                });
+
+                const avatar = document.createElement('div');
+                avatar.className = 'avatar';
+                avatar.style.background = c.color;
+                avatar.textContent = (c.name || '?').trim().slice(0, 1).toUpperCase();
+
+                const main = document.createElement('div');
+                main.className = 'contact-main';
+                main.innerHTML = `
+                    <div class="contact-name">${escapeHtml(c.name)}</div>
+                    <div class="contact-sub">${escapeHtml(formatPubkey(c.pubkey))}</div>
+                `;
+
+                row.appendChild(avatar);
+                row.appendChild(main);
+                list.appendChild(row);
+            }
+        }
+
+        function escapeHtml(s) {
+            return String(s)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        function handleIncomingLine(line) {
+            const trimmed = line.trim();
+            if (!trimmed) return;
+
+            if (trimmed.startsWith('BLE+CONTACT=')) {
+                const payload = trimmed.slice('BLE+CONTACT='.length);
+                const commaIdx = payload.indexOf(',');
+                if (commaIdx > 0) {
+                    const name = payload.slice(0, commaIdx).trim();
+                    const pubkey = payload.slice(commaIdx + 1).trim();
+                    if (name && pubkey) {
+                        ensureContact(name, pubkey);
+                        addMessage(`Contact added: ${name} (${pubkey})`, 'sys', SYSTEM_KEY);
+                    }
+                }
+                return;
+            }
+
+            // Default: treat as incoming device message.
+            const targetKey = activeKey || SYSTEM_KEY;
+            addMessage(trimmed, 'esp', targetKey);
+        }
+
+        function handleIncomingText(text) {
+            incomingBuffer += text;
+
+            // First, process newline-delimited lines if present.
+            let idx;
+            while ((idx = incomingBuffer.indexOf('\n')) !== -1) {
+                const line = incomingBuffer.slice(0, idx).replace(/\r$/, '');
+                incomingBuffer = incomingBuffer.slice(idx + 1);
+                handleIncomingLine(line);
+            }
+
+            // Then, recover contact messages that arrive without newlines.
+            // We treat each message as starting with 'BLE+CONTACT='.
+            // If multiple messages exist, they are separated by the next 'BLE+CONTACT='.
+            for (;;) {
+                const start = incomingBuffer.indexOf('BLE+CONTACT=');
+                if (start === -1) {
+                    // If buffer grows too large with no marker, drop it.
+                    if (incomingBuffer.length > 1024) incomingBuffer = '';
+                    break;
+                }
+
+                if (start > 0) incomingBuffer = incomingBuffer.slice(start);
+
+                const next = incomingBuffer.indexOf('BLE+CONTACT=', 'BLE+CONTACT='.length);
+                if (next !== -1) {
+                    const msg = incomingBuffer.slice(0, next);
+                    incomingBuffer = incomingBuffer.slice(next);
+                    handleIncomingLine(msg);
+                    continue;
+                }
+
+                // Only one message marker in buffer. Process it if it looks complete.
+                // We consider it complete if it contains a comma and at least 4 chars after it.
+                const comma = incomingBuffer.indexOf(',');
+                if (comma !== -1 && incomingBuffer.length - comma - 1 >= 4) {
+                    // Also avoid processing if it ends with '=' or ',' which indicates truncation.
+                    const lastChar = incomingBuffer[incomingBuffer.length - 1];
+                    if (lastChar !== '=' && lastChar !== ',') {
+                        handleIncomingLine(incomingBuffer);
+                        incomingBuffer = '';
+                    }
+                }
+                break;
+            }
+        }
+
+        function isBleConnected() {
+            return Boolean(device?.gatt?.connected);
+        }
+
+        async function connectBLE() {
             try {
-                print("Đang quét...", "sys");
+                if (!navigator.bluetooth) {
+                    addMessage("Web Bluetooth is not supported. Use Chrome/Edge on Android/Windows.", "sys", SYSTEM_KEY);
+                    return;
+                }
+
+                // Always return to Contacts screen on connect/disconnect.
+                showContacts();
+
+                if (isBleConnected()) {
+                    device.gatt.disconnect();
+                    setStatus(false, 'Disconnected');
+                    addMessage("Disconnected.", "sys", SYSTEM_KEY);
+                    setContactsLoading(false);
+                    return;
+                }
+
+                setStatus(false, 'Scanning...');
+                addMessage("Scanning for devices...", "sys", SYSTEM_KEY);
+
+                // Start from a blank Contacts screen on every new connect.
+                resetContacts();
+                incomingBuffer = '';
+                setContactsLoading(true, 'Waiting for contacts...');
+
                 device = await navigator.bluetooth.requestDevice({
                     filters: [{ services: [SERVICE_UUID] }]
                 });
+
+                device.addEventListener('gattserverdisconnected', () => {
+                    setStatus(false, 'Disconnected');
+                    addMessage("Device disconnected.", "sys", SYSTEM_KEY);
+                    setContactsLoading(false);
+                });
+
                 const server = await device.gatt.connect();
                 const service = await server.getPrimaryService(SERVICE_UUID);
-                charTX = await service.getCharacteristic(TX_UUID);
-                const charRX = await service.getCharacteristic(RX_UUID);
 
-                await charRX.startNotifications();
-                charRX.addEventListener('characteristicvaluechanged', (e) => {
-                    let val = new TextDecoder().decode(e.target.value);
-                    print(val, "esp");
-                });
-                print("Đã kết nối: " + device.name, "sys");
-            } catch (err) { print("Lỗi: " + err, "sys"); }
-        }
+                // Some firmwares notify on TX, others on RX; subscribe to both when possible.
+                // Write characteristic: prefer TX_UUID, fallback to RX_UUID.
+                try {
+                    charTX = await service.getCharacteristic(TX_UUID);
+                } catch {
+                    charTX = null;
+                }
 
-        async function send() {
-            const val = document.getElementById('input').value;
-            if (charTX && val) {
-                await charTX.writeValue(new TextEncoder().encode(val + "\r\n"));
-                print(val, "me");
-                document.getElementById('input').value = "";
+                try {
+                    charRX = await service.getCharacteristic(RX_UUID);
+                } catch {
+                    charRX = null;
+                }
+
+                const subscribe = async (ch) => {
+                    if (!ch) return;
+                    try {
+                        await ch.startNotifications();
+                        ch.addEventListener('characteristicvaluechanged', (e) => {
+                            const val = new TextDecoder().decode(e.target.value);
+                            handleIncomingText(val);
+                        });
+                    } catch {
+                        // Ignore if characteristic is not notifiable.
+                    }
+                };
+
+                await subscribe(charRX);
+                await subscribe(charTX);
+
+                if (!charTX) {
+                    // If TX wasn't found, try using RX as write target as well.
+                    charTX = charRX;
+                }
+
+                setStatus(true, device.name ? `Connected: ${device.name}` : 'Connected');
+                addMessage("Connected.", "sys", SYSTEM_KEY);
+
+                // Stay in loading state until at least one BLE+CONTACT line arrives.
+                if (contacts.size === 0) setContactsLoading(true, 'Waiting for contacts...');
+                else setContactsLoading(false);
+            } catch (err) {
+                setStatus(false, 'Disconnected');
+                addMessage("Error: " + err, "sys", SYSTEM_KEY);
+                setContactsLoading(false);
             }
         }
+
+        async function sendData() {
+            const input = document.getElementById('at-input');
+            const val = input.value.trim();
+            if (!val) return;
+
+            if (!charTX || !isBleConnected()) {
+                addMessage("Not connected. Press Connect first.", "sys", SYSTEM_KEY);
+                return;
+            }
+
+            if (!activeKey) {
+                addMessage("Select a contact first.", "sys", SYSTEM_KEY);
+                return;
+            }
+
+            try {
+                const prefix = pubkeyPrefix(activeKey);
+                const outgoing = injectPrefixAfterEquals(val, prefix);
+                await charTX.writeValue(new TextEncoder().encode(outgoing + "\r\n"));
+                addMessage(val, "me", activeKey);
+                input.value = "";
+            } catch (err) {
+                addMessage("Send error: " + err, "sys", SYSTEM_KEY);
+            }
+        }
+
+        document.getElementById('at-input').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                sendData();
+            }
+        });
+
+        // Init
+        setStatus(false, 'Disconnected');
+        histories.set(SYSTEM_KEY, []);
+        renderContacts();
+        addMessage("Ready. Press Connect to start.", "sys", SYSTEM_KEY);
+        showContacts();
+
+        const contactSearchEl = document.getElementById('contactSearch');
+        contactSearchEl.addEventListener('input', () => {
+            contactSearchQuery = contactSearchEl.value;
+            renderContacts();
+        });
     </script>
 </body>
 </html>
