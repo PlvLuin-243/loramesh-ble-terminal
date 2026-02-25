@@ -264,6 +264,14 @@
             min-width: 0;
         }
 
+        .contact-topline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            min-width: 0;
+        }
+
         .contact-name {
             font-size: 15px;
             font-weight: 500;
@@ -271,6 +279,22 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            min-width: 0;
+        }
+
+        .badge {
+            flex: 0 0 auto;
+            min-width: 20px;
+            height: 20px;
+            padding: 0 6px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            background: #e53935;
+            color: #fff;
         }
 
         .contact-sub {
@@ -448,6 +472,7 @@
         const SYSTEM_KEY = '__system__';
         const contacts = new Map(); // key -> { name, pubkey, color }
         const histories = new Map(); // key -> Array<{ text, type }>
+        const unreadCounts = new Map(); // key -> number
         let activeKey = null;
         let incomingBuffer = '';
         let contactsLoading = false;
@@ -509,6 +534,8 @@
             document.getElementById('chat').classList.remove('hidden');
             document.getElementById('backBtn').classList.remove('hidden');
 
+            unreadCounts.set(key, 0);
+
             const c = contacts.get(key);
             document.getElementById('headerTitle').textContent = c?.name || 'Chat';
             renderChat(key);
@@ -556,12 +583,38 @@
 
         function resetContacts() {
             contacts.clear();
+            unreadCounts.clear();
             contactOrderCounter = 0;
             // Keep only system history.
             for (const key of Array.from(histories.keys())) {
                 if (key !== SYSTEM_KEY) histories.delete(key);
             }
             activeKey = null;
+            renderContacts();
+        }
+
+        function contactKeyByPrefix(prefix) {
+            const p = String(prefix || '').trim();
+            if (!p) return null;
+            const want = p.replace(/[^0-9a-zA-Z]/g, '').toLowerCase();
+            if (!want) return null;
+
+            for (const pubkey of contacts.keys()) {
+                const pkPrefix = pubkeyPrefix(pubkey).toLowerCase();
+                if (pkPrefix === want || pkPrefix.startsWith(want) || want.startsWith(pkPrefix)) {
+                    return pubkey;
+                }
+            }
+            return null;
+        }
+
+        function incrementUnread(key) {
+            if (!key || key === SYSTEM_KEY) return;
+            const next = (unreadCounts.get(key) || 0) + 1;
+            unreadCounts.set(key, next);
+
+            // If user is on Contacts screen, update badges immediately.
+            if (!document.getElementById('chat').classList.contains('hidden')) return;
             renderContacts();
         }
 
@@ -631,6 +684,7 @@
             }
 
             for (const c of items) {
+                const unread = unreadCounts.get(c.pubkey) || 0;
                 const row = document.createElement('div');
                 row.className = 'contact-row';
                 row.setAttribute('role', 'listitem');
@@ -651,7 +705,10 @@
                 const main = document.createElement('div');
                 main.className = 'contact-main';
                 main.innerHTML = `
-                    <div class="contact-name">${escapeHtml(c.name)}</div>
+                    <div class="contact-topline">
+                        <div class="contact-name">${escapeHtml(c.name)}</div>
+                        ${unread > 0 ? `<span class="badge" aria-label="${unread} unread">${unread}</span>` : ''}
+                    </div>
                     <div class="contact-sub">${escapeHtml(formatPubkey(c.pubkey))}</div>
                 `;
 
@@ -688,6 +745,25 @@
                 return;
             }
 
+            if (trimmed.startsWith('BLE+MESS=')) {
+                const payload = trimmed.slice('BLE+MESS='.length);
+                const commaIdx = payload.indexOf(',');
+                if (commaIdx > 0) {
+                    const prefix = payload.slice(0, commaIdx).trim();
+                    const message = payload.slice(commaIdx + 1).trim();
+                    const key = contactKeyByPrefix(prefix);
+                    if (key) {
+                        const isViewingChat = !document.getElementById('chat').classList.contains('hidden');
+                        const isCurrent = isViewingChat && activeKey === key;
+                        addMessage(message, 'esp', key);
+                        if (!isCurrent) incrementUnread(key);
+                    } else {
+                        addMessage(`Unknown prefix ${prefix}: ${message}`, 'sys', SYSTEM_KEY);
+                    }
+                }
+                return;
+            }
+
             // Default: treat as incoming device message.
             const targetKey = activeKey || SYSTEM_KEY;
             addMessage(trimmed, 'esp', targetKey);
@@ -704,20 +780,39 @@
                 handleIncomingLine(line);
             }
 
-            // Then, recover contact messages that arrive without newlines.
-            // We treat each message as starting with 'BLE+CONTACT='.
-            // If multiple messages exist, they are separated by the next 'BLE+CONTACT='.
+            // Then, recover messages that arrive without newlines.
+            // We treat each message as starting with 'BLE+CONTACT=' or 'BLE+MESS='.
+            // If multiple messages exist, they are separated by the next marker.
+            const markers = ['BLE+CONTACT=', 'BLE+MESS='];
+
+            const findFirstMarker = (buf) => {
+                let best = -1;
+                for (const m of markers) {
+                    const i = buf.indexOf(m);
+                    if (i !== -1 && (best === -1 || i < best)) best = i;
+                }
+                return best;
+            };
+
+            const findNextMarker = (buf) => {
+                let best = -1;
+                for (const m of markers) {
+                    const i = buf.indexOf(m, 1);
+                    if (i !== -1 && (best === -1 || i < best)) best = i;
+                }
+                return best;
+            };
+
             for (;;) {
-                const start = incomingBuffer.indexOf('BLE+CONTACT=');
+                const start = findFirstMarker(incomingBuffer);
                 if (start === -1) {
-                    // If buffer grows too large with no marker, drop it.
                     if (incomingBuffer.length > 1024) incomingBuffer = '';
                     break;
                 }
 
                 if (start > 0) incomingBuffer = incomingBuffer.slice(start);
 
-                const next = incomingBuffer.indexOf('BLE+CONTACT=', 'BLE+CONTACT='.length);
+                const next = findNextMarker(incomingBuffer);
                 if (next !== -1) {
                     const msg = incomingBuffer.slice(0, next);
                     incomingBuffer = incomingBuffer.slice(next);
@@ -725,11 +820,9 @@
                     continue;
                 }
 
-                // Only one message marker in buffer. Process it if it looks complete.
-                // We consider it complete if it contains a comma and at least 4 chars after it.
+                // Only one marker in buffer. Process if it looks complete.
                 const comma = incomingBuffer.indexOf(',');
-                if (comma !== -1 && incomingBuffer.length - comma - 1 >= 4) {
-                    // Also avoid processing if it ends with '=' or ',' which indicates truncation.
+                if (comma !== -1 && incomingBuffer.length - comma - 1 >= 1) {
                     const lastChar = incomingBuffer[incomingBuffer.length - 1];
                     if (lastChar !== '=' && lastChar !== ',') {
                         handleIncomingLine(incomingBuffer);
