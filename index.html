@@ -58,8 +58,8 @@
         }
 
         .btn-back {
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
             border-radius: 999px;
             display: inline-flex;
             align-items: center;
@@ -71,7 +71,7 @@
 
         .btn-back:active { background: rgba(255,255,255,0.12); }
 
-        .btn-back .material-icons { font-size: 22px; }
+        .btn-back .material-icons { font-size: 18px; }
 
         .header-title {
             min-width: 0;
@@ -88,8 +88,8 @@
         .chat-header.hidden { display: none !important; }
 
         .chat-avatar {
-            width: 36px;
-            height: 36px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             display: grid;
             place-items: center;
@@ -162,13 +162,13 @@
             background: #fff;
             color: var(--header);
             border: none;
-            padding: 8px 14px;
+            padding: 6px 12px;
             border-radius: 999px;
             display: inline-flex;
             align-items: center;
             font-weight: 500;
             cursor: pointer;
-            transition: transform 0.06s ease, background-color 0.15s ease;
+            transition: transform 0.06s ease, background-color 0.15s ease, padding 0.15s ease, width 0.15s ease, height 0.15s ease;
             flex: 0 0 auto;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
@@ -180,13 +180,13 @@
         }
 
         .btn-connect .material-icons {
-            font-size: 18px;
-            margin-right: 6px;
+            font-size: 16px;
+            margin-right: 4px;
         }
 
         .btn-icon {
-            width: 40px;
-            height: 40px;
+            width: 32px;
+            height: 32px;
             padding: 0;
             display: inline-flex;
             align-items: center;
@@ -195,6 +195,14 @@
             background: #fff;
             color: var(--header);
             border: 1px solid #eee;
+            font-size: 16px;
+        }
+        
+        .btn-icon .material-icons {
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         /* Settings / Device Info styles */
@@ -497,12 +505,11 @@
             cursor: pointer;
             color: rgba(0,0,0,0.45);
             flex-shrink: 0;
-            opacity: 0;
-            transition: opacity 0.15s;
+            opacity: 1;
+            transition: background 0.15s;
             -webkit-tap-highlight-color: transparent;
         }
-        .contact-row:hover .contact-menu-btn,
-        .contact-menu-btn.active { opacity: 1; }
+        .contact-menu-btn.active { background: rgba(0,0,0,0.12); }
         .contact-menu-btn:hover { background: rgba(0,0,0,0.08); }
 
         .contact-menu-popup {
@@ -541,36 +548,51 @@
         }
 
         .msg {
-            max-width: min(80%, 520px);
-            padding: 9px 12px;
-            border-radius: 10px;
-            font-size: 14px;
-            line-height: 1.35;
-            word-wrap: break-word;
-            box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+            max-width: 85%;
+            padding: 6px 10px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            word-break: break-word;
+            background: rgba(0, 0, 0, 0.05);
+            border-left: 3px solid #999;
+            box-shadow: none;
         }
 
         .msg.me {
             align-self: flex-end;
-            background: var(--me);
-            color: #000;
-            border-bottom-right-radius: 4px;
+            color: #0066cc;
+            border-left-color: #0066cc;
         }
 
         .msg.esp {
             align-self: flex-start;
-            background: #f1f1f1;
-            color: #222;
-            border-bottom-left-radius: 4px;
+            color: #229922;
+            border-left-color: #229922;
+        }
+
+        .msg.error {
+            align-self: flex-start;
+            color: #cc0000;
+            border-left-color: #cc0000;
+        }
+
+        /* ERROR 700 (LoRa send timeout) displays on right but in red */
+        .msg.sendError {
+            align-self: flex-end;
+            color: #cc0000;
+            border-left-color: transparent;
+            border-right-color: #cc0000;
         }
 
         .msg.sys {
             align-self: center;
-            background: var(--sys);
+            background: rgba(200, 200, 200, 0.3);
             color: rgba(0,0,0,0.7);
             font-size: 12px;
-            border-radius: 6px;
-            box-shadow: none;
+            border-radius: 3px;
+            border-left-color: #999;
         }
 
         .input-bar {
@@ -609,6 +631,69 @@
         .btn-send:active { background: rgba(0,0,0,0.06); }
 
         .btn-send .material-icons { font-size: 22px; }
+
+        /* Terminal window styles */
+        #terminal-window {
+            flex: 1;
+            padding: 14px 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding-bottom: calc(14px + env(safe-area-inset-bottom));
+            background: #ffffff;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            min-height: 0;
+        }
+
+        .terminal-msg {
+            max-width: 100%;
+            padding: 6px 10px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            word-break: break-word;
+            background: rgba(0, 0, 0, 0.05);
+            color: #222222;
+            border-left: 3px solid #999;
+        }
+
+        .terminal-msg.terminal-sent {
+            color: #0066cc;
+            border-left-color: #0066cc;
+            align-self: flex-end;
+            max-width: 85%;
+        }
+
+        .terminal-msg.terminal-received {
+            color: #229922;
+            border-left-color: #229922;
+            align-self: flex-start;
+            max-width: 85%;
+        }
+
+        .terminal-msg.terminal-error {
+            color: #cc0000;
+            border-left-color: #cc0000;
+        }
+
+        #terminal-input {
+            border: 1px solid #ddd;
+            background: #ffffff;
+            color: #222222;
+            border-radius: 4px;
+            padding: 9px 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            outline: none;
+        }
+
+        #terminal-input:focus {
+            border-color: #0066cc;
+            box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+        }
 
         @media (max-width: 380px) {
             .header-title h1 { font-size: 17px; }
@@ -727,13 +812,114 @@
             background: var(--header);
             color: #fff;
         }
+
+        /* Error Notification - Centered Modal */
+        .error-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #cc0000;
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 10000;
+            animation: zoomIn 0.3s ease-out;
+            min-width: 400px;
+            max-width: 700px;
+            max-height: 70vh;
+        }
+
+        @keyframes zoomIn {
+            from {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes zoomOut {
+            from {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            to {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0;
+            }
+        }
+
+        .error-notification.hidden {
+            display: none;
+        }
+
+        .error-notification.closing {
+            animation: zoomOut 0.3s ease-in;
+        }
+
+        .error-content {
+            padding: 24px;
+            overflow-y: auto;
+            max-height: calc(70vh - 80px);
+        }
+
+        .error-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .error-header .material-icons {
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .error-title {
+            font-weight: 600;
+            font-size: 16px;
+            flex-grow: 1;
+        }
+
+        .error-close {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+
+        .error-close:hover {
+            opacity: 1;
+        }
+
+        .error-message {
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-word;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 12px;
+            border-radius: 6px;
+            max-height: calc(70vh - 140px);
+            overflow-y: auto;
+        }
     </style>
 </head>
 
 <body>
     <header>
         <div class="left">
-            <div id="backBtn" class="btn-back hidden" role="button" tabindex="0" aria-label="Back" onclick="showContacts()" onkeydown="if(event.key==='Enter'||event.key===' ') showContacts()">
+            <div id="backBtn" class="btn-back hidden" role="button" tabindex="0" aria-label="Back" onclick="if(document.getElementById('terminal').classList.contains('hidden')) showContacts(); else showPreviousScreen();" onkeydown="if(event.key==='Enter'||event.key===' ') { if(document.getElementById('terminal').classList.contains('hidden')) showContacts(); else showPreviousScreen(); }">
                 <i class="material-icons" aria-hidden="true">arrow_back</i>
             </div>
 
@@ -755,7 +941,7 @@
         </div>
 
         <div style="display:flex;gap:8px;align-items:center;">
-            <button id="connectBtn" class="btn-connect" type="button" onclick="connectBLE()">
+            <button id="connectBtn" class="btn-connect" type="button" onclick="connectBLE()" title="Connect/Disconnect">
                 <i class="material-icons" aria-hidden="true">bluetooth</i>
                 <span id="connectLabel">Connect</span>
             </button>
@@ -798,6 +984,10 @@
     <!-- Screen 3: Device Info / Settings -->
     <div id="settings" class="screen hidden">
         <div class="settings-root">
+            <div id="settingsLoadingOverlay" class="contacts-overlay hidden" style="position: fixed; top: calc(56px + env(safe-area-inset-top)); left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(255,255,255,1); z-index: 9999;">
+                <div class="spinner" aria-hidden="true"></div>
+                <div class="overlay-text">Loading device information...</div>
+            </div>
             <div class="settings-section">
                 <strong>Information <i class="material-icons sync-icon" onclick="requestInfoSection()">sync</i></strong>
                 <div class="settings-list">
@@ -885,6 +1075,16 @@
                     </div>
                 </div>
             </div>
+
+            <div class="settings-section" onclick="showTerminal();">
+                <strong>Terminal <i class="material-icons" style="font-size: 18px; margin-left: auto;">message</i></strong>
+                <div class="settings-list">
+                    <div class="field" style="padding: 10px 0; text-align: center; color: rgba(0,0,0,0.55);">
+                        <i class="material-icons" style="font-size: 32px; display: block; margin-bottom: 8px;">terminal</i>
+                        Tap to open terminal console
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -909,11 +1109,36 @@
         </div>
     </div>
 
+    <!-- Screen 2.5: Terminal -->
+    <div id="terminal" class="screen hidden">
+        <div id="terminal-window" aria-label="Terminal output"></div>
+
+        <div id="terminalAutocomplete" class="at-autocomplete hidden"></div>
+
+        <div class="input-bar">
+            <input
+                type="text"
+                id="terminal-input"
+                placeholder="Enter AT command..."
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+            />
+            <div class="btn-send" role="button" tabindex="0" aria-label="Send" onclick="sendTerminalCommand()" onkeydown="if(event.key==='Enter'||event.key===' ') sendTerminalCommand()">
+                <i class="material-icons" aria-hidden="true">send</i>
+            </div>
+        </div>
+    </div>
+
     <!-- Screen 4: Contact Info -->
     <div id="contactInfo" class="screen hidden">
         <div class="settings-root">
             <div class="settings-section" id="contactInfoSection">
                 <strong>Contact Info <i class="material-icons sync-icon" onclick="requestContactInfoSection()">sync</i></strong>
+                <div id="contactInfoLoading" class="contacts-overlay hidden" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(255,255,255,0.95); z-index: 10; border-radius: 8px;">
+                    <div class="spinner" aria-hidden="true"></div>
+                    <div class="overlay-text">Loading contact info...</div>
+                </div>
                 <div class="settings-list">
                     <div class="field">
                         <div class="field-label">Name</div>
@@ -968,6 +1193,20 @@
         </div>
     </div>
 
+    <!-- Error Notification -->
+    <div id="errorNotification" class="error-notification hidden">
+        <div class="error-content">
+            <div class="error-header">
+                <i class="material-icons" aria-hidden="true">error</i>
+                <span class="error-title">Error</span>
+                <button class="error-close" type="button" onclick="closeErrorNotification()" aria-label="Close">
+                    <i class="material-icons" aria-hidden="true">close</i>
+                </button>
+            </div>
+            <div class="error-message" id="errorMessage">An error occurred</div>
+        </div>
+    </div>
+
     <script>
         const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
         const TX_UUID      = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // Web Write -> ESP RX
@@ -975,11 +1214,237 @@
 
         let charTX;
         let charRX;
+        let previousScreen = 'contacts';  // Track which screen to return to from terminal
+        let isExitingTerminal = false;     // Flag to prevent reload when exiting terminal
+        let isLoadingDeviceInfo = false;   // Track if device info loading is in progress
         let device;
 
+        // ── Command Queue System ──────────────────────────────────────────────
+        /**
+         * Categorizes incoming responses into 3 types:
+         * Type 1: Contact response (contains @pubkeyprefix)
+         * Type 2: Device info (starts with +, like +SYSID:, +LRCFG:, or errors +CMS, +CME)
+         * Type 3: Simple responses (OK, ERROR)
+         */
+        function parseResponseCategory(text) {
+            const trimmed = text.trim();
+            if (!trimmed) return { type: 'empty', message: trimmed };
+            
+            // Type 1: Contact response with @pubkeyprefix at end
+            const contactMatch = trimmed.match(/(.*?)@([0-9a-fA-F]{12})\s*$/);
+            if (contactMatch) {
+                return {
+                    type: 'contact',
+                    message: contactMatch[1].trim(),
+                    pubkeyPrefix: contactMatch[2]
+                };
+            }
+            
+            // Type 2: Device info response or error
+            // Matches: +CONLST:, +SYSID:, [0], [1], etc.
+            // Also: lines that are part of a CONINF multi-line response (Index:, Name:, Type:, etc.)
+            if (trimmed.startsWith('+') || /^\[\d+\]/.test(trimmed)) {
+                const errorMatch = trimmed.match(/^\+CM[ES]/);
+                if (errorMatch) {
+                    return { type: 'error', message: trimmed };
+                }
+                return { type: 'deviceInfo', message: trimmed };
+            }
+            
+            // Type 3: Simple responses
+            if (trimmed === 'OK' || trimmed === 'ERROR') {
+                console.log(`[PARSE] Simple response (${trimmed}), coninfCollecting=${coninfCollecting}, gpsCollecting=${collectingGpsInfo}, line="${trimmed.substring(0, 50)}"`);
+                return { type: 'simple', message: trimmed };
+            }
+            
+            // If we're collecting CONINF lines, treat everything as deviceInfo until OK or timeout
+            if (coninfCollecting) {
+                console.log(`[PARSE] Line is part of CONINF collection: "${trimmed.substring(0, 50)}"`);
+                return { type: 'deviceInfo', message: trimmed };
+            }
+            
+            // If we're collecting GPS info lines, treat everything as deviceInfo
+            if (collectingGpsInfo) {
+                console.log(`[PARSE] Line is part of GPS info collection: "${trimmed.substring(0, 50)}"`);
+                return { type: 'deviceInfo', message: trimmed };
+            }
+            
+            console.log(`[PARSE] Unknown line (coninfCollecting=${coninfCollecting}, gpsCollecting=${collectingGpsInfo}): "${trimmed.substring(0, 50)}"`);
+            return { type: 'unknown', message: trimmed };
+        }
+
+        /**
+         * Command Queue to ensure only one AT command is sent at a time.
+         * Prevents concurrent command issues.
+         */
+        class CommandQueue {
+            constructor() {
+                this.queue = [];
+                this.processing = false;
+                this.currentCommand = null;
+                this.responseBuffer = '';
+            }
+
+            async enqueue(cmd, options = {}) {
+                return new Promise((resolve, reject) => {
+                    this.queue.push({
+                        cmd,
+                        resolve,
+                        reject,
+                        timeout: options.timeout || 3000,
+                        onResponse: options.onResponse || null,
+                        retries: options.retries || 0,
+                        attempt: 0
+                    });
+                    this.process();
+                });
+            }
+
+            async process() {
+                if (this.processing || this.queue.length === 0) return;
+                this.processing = true;
+                
+                const item = this.queue.shift();
+                this.currentCommand = item;
+                
+                try {
+                    // Attempt to send command with retries
+                    let lastError;
+                    for (let attempt = 0; attempt <= item.retries; attempt++) {
+                        item.attempt = attempt;
+                        try {
+                            if (!charTX || !isBleConnected()) {
+                                throw new Error('Not connected');
+                            }
+                            
+                            await bleWriteChunked(item.cmd);
+                            
+                            // Wait for response with timeout
+                            const response = await this._waitForResponse(item.timeout);
+                            
+                            if (item.onResponse) {
+                                item.onResponse(response);
+                            }
+                            item.resolve(response);
+                            return;
+                        } catch (e) {
+                            lastError = e;
+                            if (attempt < item.retries) {
+                                await new Promise(r => setTimeout(r, 100));
+                            }
+                        }
+                    }
+                    item.reject(lastError);
+                } catch (e) {
+                    item.reject(e);
+                } finally {
+                    this.processing = false;
+                    this.currentCommand = null;
+                    this.process();
+                }
+            }
+
+            _waitForResponse(timeoutMs) {
+                return new Promise((resolve, reject) => {
+                    const startTime = Date.now();
+                    const timeoutId = setTimeout(() => {
+                        reject(new Error('Response timeout'));
+                    }, timeoutMs);
+
+                    const checkInterval = setInterval(() => {
+                        if (lastCommandResponse !== null) {
+                            clearInterval(checkInterval);
+                            clearTimeout(timeoutId);
+                            const response = lastCommandResponse;
+                            lastCommandResponse = null;
+                            resolve(response);
+                        }
+                    }, 20);
+                });
+            }
+        }
+
+        const commandQueue = new CommandQueue();
+
         const SYSTEM_KEY = '__system__';
-        const contacts = new Map(); // key -> { name, pubkey, color }
+        const contacts = new Map(); // key -> { name, pubkey, color, macAddress }
+        const contactMacMap = new Map(); // contactKey -> macAddress (for AT+CONINF= commands)
         const histories = new Map(); // key -> Array<{ text, type }>
+
+        // ── CME Error Codes (Equipment/Hardware/System Errors) ─────────────────
+        const CME_ERROR_MAP = {
+            0: 'RADIO_FAILURE - Radio hardware failure',
+            3: 'OPERATION_NOT_ALLOWED - Operation not allowed in current state',
+            4: 'OPERATION_NOT_SUPPORTED - Operation not supported',
+            20: 'MEMORY_FULL - Memory or ring-buffer full',
+            21: 'INVALID_INDEX - Index out of range',
+            30: 'NO_NETWORK_SERVICE - No mesh network service',
+            50: 'INVALID_PARAMETERS - Invalid command parameters',
+            500: 'AT_CMD_SLAB_FULL - AT command slab memory full',
+            501: 'AT_CMD_THREADPOOL_FULL - AT command threadpool full',
+            502: 'AT_CMD_TOO_LONG - AT command too long',
+            503: 'AT_CMD_UNKNOWN - Unknown AT command',
+            504: 'AT_CMD_GROUP_PUB_FAILED - Failed to publish AT command',
+            505: 'MODULE_REQUEST_SLAB_FULL - Module request slab full',
+            506: 'MODULE_THREADPOOL_FULL - Module threadpool full',
+            507: 'ZBUS_CHAN_PUBLISH_TIMEOUT - Zbus channel publish timeout',
+            508: 'LORA_FREQ_OUT_OF_RANGE - LoRa frequency out of range',
+            509: 'LORA_SF_OUT_OF_RANGE - LoRa spreading factor out of range',
+            510: 'LORA_BW_OUT_OF_RANGE - LoRa bandwidth out of range',
+            511: 'LORA_TX_POWER_INVALID - LoRa TX power invalid',
+            512: 'LORA_CHANNEL_SUFFIX_INVALID - LoRa channel suffix invalid',
+            513: 'LORA_ADVERT_TX_FAILED - LoRa advertisement transmit failed',
+            514: 'CONTACT_NOT_FOUND_IN_TABLE - Contact not found in table',
+            515: 'CONTACT_TABLE_FULL_OR_DUPLICATE - Contact table full or duplicate',
+            516: 'INVALID_PUBKEY_PREFIX_FORMAT - Invalid pubkey prefix format',
+            517: 'GPS_LOCATION_PROVIDER_NULL - GPS location provider null',
+            518: 'GPS_HW_START_FAILED - GPS hardware start failed',
+            519: 'GPS_HW_STOP_FAILED - GPS hardware stop failed',
+            520: 'BQ4050_I2C_BUS_NOT_READY - BQ4050 I2C bus not ready',
+            521: 'BQ4050_VOLTAGE_INVALID_AFTER_RETRIES - BQ4050 voltage invalid',
+            522: 'ADC_DEVICE_NOT_READY - ADC device not ready',
+            523: 'ADC_CHANNEL_SETUP_FAILED - ADC channel setup failed',
+            524: 'ADC_NOT_INITIALIZED - ADC not initialized',
+            525: 'ADC_ALL_SAMPLES_FAILED - ADC all samples failed',
+            526: 'WARN_LEVEL_OUT_OF_RANGE - Warning level out of range',
+            527: 'WARN_SAME_LEVEL_ALREADY_QUEUED - Warning same level already queued',
+            528: 'WARN_MSGQ_PUT_FAILED - Warning message queue put failed',
+            529: 'WARN_STORAGE_READ_FAILED - Warning storage read failed',
+            530: 'WARN_CONFIG_ARGS_INVALID - Warning config arguments invalid',
+            531: 'WARN_CONFIG_STORAGE_WRITE_FAILED - Warning config storage write failed',
+            532: 'SIREN_GPIO_NOT_READY - Siren GPIO not ready',
+            533: 'RADIO_DIO1_STUCK_HIGH - Radio DIO1 stuck high',
+            534: 'RETAINED_MEM_DEVICE_NOT_READY - Retained memory device not ready',
+            535: 'RETAINED_MEM_INVALID_MAGIC - Retained memory invalid magic',
+            536: 'RETAINED_MEM_READ_FAILED - Retained memory read failed',
+            537: 'LITTLEFS_MOUNT_FAILED - LittleFS mount failed',
+            538: 'STORAGE_FILE_OPEN_WRITE_FAILED - Storage file open/write failed',
+            539: 'STORAGE_VERSION_HEADER_WRITE_FAILED - Storage version header write failed',
+            540: 'STORAGE_STRUCT_WRITE_FAILED - Storage struct write failed',
+            541: 'STORAGE_FILE_OPEN_READ_FAILED - Storage file open read failed',
+            542: 'STORAGE_LAYOUT_VERSION_MISMATCH - Storage layout version mismatch',
+            543: 'STORAGE_READ_SIZE_MISMATCH - Storage read size mismatch',
+            544: 'RING_LOG_MUTEX_TIMEOUT - Ring log mutex timeout',
+            545: 'RING_LOG_FILE_OPEN_FAILED - Ring log file open failed',
+            546: 'RING_LOG_WRITE_FAILED_FS_FULL - Ring log write failed filesystem full',
+            547: 'STORAGE_CHAN_CLAIM_TIMEOUT - Storage channel claim timeout'
+        };
+
+        // ── CMS Error Codes (Message Service / LoRa TX Errors) ─────────────────
+        const CMS_ERROR_MAP = {
+            300: 'ME_FAILURE - Mesh engine failure',
+            302: 'UNKNOWN_SERVICE_CENTER - Unknown service center',
+            700: 'AT_REQ_NO_RESP_AFTER_RETRIES - LoRa send timeout',
+            701: 'SEND_MISSING_TARGET_OR_MESSAGE - Missing target or message',
+            702: 'SEND_INVALID_TARGET_PUBKEY_FORMAT - Invalid target pubkey format',
+            703: 'SEND_CONTACT_NOT_IN_MESH - Contact not in mesh',
+            704: 'SEND_AT_REQUEST_TX_FAILED - AT request transmit failed',
+            705: 'PENDING_SEND_TABLE_FULL - Pending send table full',
+            706: 'LRCARD_BASE64_DECODE_FAILED - Mini-card base64 decode failed',
+            707: 'LRCARD_INVALID_PAYLOAD_LENGTH - Mini-card invalid payload length',
+            708: 'LRCARD_SIGNATURE_VERIFY_FAILED - Mini-card signature verification failed',
+            709: 'CONTACT_SHARE_TX_FAILED - Contact share transmit failed'
+        };
         const unreadCounts = new Map(); // key -> number
         const deviceInfo = {
             deviceName: '',
@@ -998,6 +1463,8 @@
         };
         let collectingGpsInfo = false;
         let currentEditingField = null;
+        let lastCommandResponse = null;      // Track last command response for timeout mechanism
+        let lastCommandResponseTime = null;  // Track when last response arrived
         let pendingSetting = null;
         let activeKey = null;
         let incomingBuffer = '';
@@ -1018,10 +1485,51 @@
         let coninfCollecting = false;
         let coninfLines = [];
         let coninfIdleTimer = null;     // 100 ms silence → response complete
+        // GPS info collection state
+        let gpsIdleTimer = null;        // 100 ms silence → GPS collection complete
         // Bulk fetch queue
         let coninfQueue = [];
         let coninfFetching = false;
         let coninfBulkDebounceTimer = null;
+
+        /**
+         * Convert error code to human-readable error message
+         * @param {string} errorType - 'CME' or 'CMS'
+         * @param {number} errorCode - The error code number
+         * @returns {string} Human-readable error description
+         */
+        function getErrorDescription(errorType, errorCode) {
+            const codeNum = parseInt(errorCode, 10);
+            if (errorType === 'CME') {
+                return CME_ERROR_MAP[codeNum] || `CME ERROR: ${codeNum} (Unknown error)`;
+            } else if (errorType === 'CMS') {
+                return CMS_ERROR_MAP[codeNum] || `CMS ERROR: ${codeNum} (Unknown error)`;
+            }
+            return `${errorType} ERROR: ${codeNum}`;
+        }
+
+        /**
+         * Format error message with simplified description
+         * Input: "+CME ERROR: 514" or "+CMS ERROR: 700"
+         * Output: "Contact not found in table" (only the short description)
+         */
+        function formatErrorMessage(rawErrorMsg) {
+            // Match patterns like "+CME ERROR: 514" or "+CMS ERROR: 700"
+            const match = rawErrorMsg.match(/^\+(CM[ES])\s+ERROR:\s*(\d+)/);
+            if (!match) return rawErrorMsg; // Not an error message
+            
+            const errorType = match[1]; // 'CME' or 'CMS'
+            const errorCode = match[2]; // '514', '700', etc.
+            const fullDescription = getErrorDescription(errorType, errorCode);
+            
+            // Extract only the short description (after the last " - ")
+            // From: "LORA_TX_POWER_INVALID - LoRa TX power invalid"
+            // To: "LoRa TX power invalid"
+            const parts = fullDescription.split(' - ');
+            const shortDescription = parts[parts.length - 1]; // Get last part
+            
+            return shortDescription;
+        }
 
         function addMessage(text, type, keyOverride) {
             const key = keyOverride || activeKey || SYSTEM_KEY;
@@ -1052,23 +1560,86 @@
             }
         }
 
+        let errorNotificationTimer = null;
+
+        /**
+         * Show error notification with auto-close after 5 seconds
+         * User can also close with X button
+         * Displays complete message including @pubkey without truncation
+         */
+        function showErrorNotification(message) {
+            const notification = document.getElementById('errorNotification');
+            const errorMessage = document.getElementById('errorMessage');
+            
+            console.log("[ERROR] Showing error notification:", message);
+            
+            // Clear any existing timer
+            if (errorNotificationTimer) {
+                clearTimeout(errorNotificationTimer);
+            }
+            
+            // Set error message - textContent preserves formatting and displays complete message
+            errorMessage.textContent = message;
+            
+            // Show notification
+            notification.classList.remove('hidden', 'closing');
+            
+            // Auto-close after 5 seconds
+            errorNotificationTimer = setTimeout(() => {
+                closeErrorNotification();
+            }, 5000);
+        }
+
+        /**
+         * Close error notification with animation
+         */
+        function closeErrorNotification() {
+            const notification = document.getElementById('errorNotification');
+            
+            // Clear timer if exists
+            if (errorNotificationTimer) {
+                clearTimeout(errorNotificationTimer);
+                errorNotificationTimer = null;
+            }
+            
+            // Add closing animation
+            notification.classList.add('closing');
+            
+            // Hide after animation completes
+            setTimeout(() => {
+                notification.classList.add('hidden');
+                notification.classList.remove('closing');
+            }, 300);
+        }
+
         function setStatus(connected, statusText) {
             const dot = document.getElementById('dot');
             const statusLabel = document.getElementById('statusLabel');
+            const connectBtn = document.getElementById('connectBtn');
             const connectLabel = document.getElementById('connectLabel');
             dot.classList.toggle('ok', connected);
             statusLabel.textContent = statusText || (connected ? 'Connected' : 'Disconnected');
-            connectLabel.textContent = connected ? 'Disconnect' : 'Connect';
+            if (connected) {
+                connectLabel.textContent = 'Disconnect';
+            } else {
+                connectLabel.textContent = 'Connect';
+            }
             document.getElementById('syncContactsBtn').classList.toggle('hidden', !connected);
             document.getElementById('addContactBtn').classList.toggle('hidden', !connected);
             document.getElementById('advertBtn').classList.toggle('hidden', !connected);
         }
 
         function showContacts() {
+            // Cancel any ongoing device info loading
+            isLoadingDeviceInfo = false;
+            const loadingOverlay = document.getElementById('settingsLoadingOverlay');
+            if (loadingOverlay) loadingOverlay.classList.add('hidden');
+            
             document.getElementById('contacts').classList.remove('hidden');
             document.getElementById('chat').classList.add('hidden');
             document.getElementById('settings').classList.add('hidden');
             document.getElementById('contactInfo').classList.add('hidden');
+            document.getElementById('terminal').classList.add('hidden');
             document.getElementById('backBtn').classList.add('hidden');
             document.getElementById('headerTitle').textContent = 'MeshPhyr';
             activeKey = null;
@@ -1088,9 +1659,17 @@
         }
 
         function showChat(key) {
+            // Cancel any ongoing device info loading
+            isLoadingDeviceInfo = false;
+            const loadingOverlay = document.getElementById('settingsLoadingOverlay');
+            if (loadingOverlay) loadingOverlay.classList.add('hidden');
+            
             activeKey = key;
             document.getElementById('contacts').classList.add('hidden');
             document.getElementById('chat').classList.remove('hidden');
+            document.getElementById('settings').classList.add('hidden');
+            document.getElementById('contactInfo').classList.add('hidden');
+            document.getElementById('terminal').classList.add('hidden');
             document.getElementById('backBtn').classList.remove('hidden');
 
             unreadCounts.set(key, 0);
@@ -1120,6 +1699,42 @@
 
             renderChat(key);
             document.getElementById('at-input').focus();
+        }
+
+        function showTerminal() {
+            // Save current screen before switching to terminal
+            if (!document.getElementById('contacts').classList.contains('hidden')) previousScreen = 'contacts';
+            else if (!document.getElementById('chat').classList.contains('hidden')) previousScreen = 'chat';
+            else if (!document.getElementById('settings').classList.contains('hidden')) previousScreen = 'settings';
+            else if (!document.getElementById('contactInfo').classList.contains('hidden')) previousScreen = 'contactInfo';
+            
+            // Hide all screens except terminal
+            document.getElementById('contacts').classList.add('hidden');
+            document.getElementById('chat').classList.add('hidden');
+            document.getElementById('settings').classList.add('hidden');
+            document.getElementById('contactInfo').classList.add('hidden');
+            document.getElementById('terminal').classList.remove('hidden');
+            
+            document.getElementById('backBtn').classList.remove('hidden');
+            document.querySelector('.header-title').classList.remove('hidden');
+            document.getElementById('chatHeader').classList.add('hidden');
+            document.getElementById('connectBtn').classList.add('hidden');
+            document.getElementById('settingsBtn').classList.add('hidden');
+            document.getElementById('syncContactsBtn').classList.add('hidden');
+            document.getElementById('addContactBtn').classList.add('hidden');
+            document.getElementById('advertBtn').classList.add('hidden');
+            
+            document.getElementById('headerTitle').textContent = 'Terminal';
+            document.getElementById('terminal-input').focus();
+        }
+
+        function showPreviousScreen() {
+            isExitingTerminal = true;  // Prevent automatic reload
+            if (previousScreen === 'chat') showChat(activeKey);
+            else if (previousScreen === 'settings') showSettings(true);  // true = skipReload
+            else if (previousScreen === 'contactInfo') showContactInfo(Array.from(contacts.values())[0]);
+            else showContacts();
+            isExitingTerminal = false;
         }
 
         function hashColor(input) {
@@ -1163,6 +1778,7 @@
 
         function resetContacts() {
             contacts.clear();
+            contactMacMap.clear();
             unreadCounts.clear();
             contactOrderCounter = 0;
             // Keep only system history.
@@ -1198,8 +1814,9 @@
             renderContacts();
         }
 
-        function ensureContact(name, pubkey, type) {
+        function ensureContact(name, pubkey, type, macAddress) {
             const key = pubkey;
+            console.log(`[DEBUG] ensureContact called: name=${name}, pubkey=${pubkey}, type=${type}, macAddress=${macAddress}, contactsLoading=${contactsLoading}, contacts.size=${contacts.size}`);
             if (contacts.has(key)) {
                 // Update name or type if they changed.
                 const existing = contacts.get(key);
@@ -1212,20 +1829,22 @@
             }
 
             const order = ++contactOrderCounter;
-            contacts.set(key, { name, pubkey, color: hashColor(pubkey), order, type: typeof type !== 'undefined' ? String(type) : '0' });
+            contacts.set(key, { name, pubkey, color: hashColor(pubkey), order, type: typeof type !== 'undefined' ? String(type) : '0', macAddress: macAddress || '' });
+            console.log(`[DEBUG] Contact added to map: key=${key}, contacts.size=${contacts.size}`);
+            if (macAddress) {
+                contactMacMap.set(key, macAddress);
+                console.log(`[DEBUG] Stored MAC mapping: ${key} -> ${macAddress}`);
+            }
             if (!histories.has(key)) histories.set(key, []);
             if (contactsLoading) {
+                console.log(`[DEBUG] contactsLoading is true, calling setContactsLoading(false)`);
                 setContactsLoading(false);
             } else {
+                console.log(`[DEBUG] contactsLoading is false, calling renderContacts()`);
                 renderContacts();
             }
 
-            // Schedule bulk AT+CONINF fetch: fires 1 s after the last new contact arrives
-            if (coninfBulkDebounceTimer) clearTimeout(coninfBulkDebounceTimer);
-            coninfBulkDebounceTimer = setTimeout(() => {
-                coninfBulkDebounceTimer = null;
-                fetchAllContactInfos();
-            }, 1000);
+            // CONINF fetch is now only triggered when user clicks Information button
         }
 
         function setContactsLoading(loading, text) {
@@ -1362,6 +1981,116 @@
             const trimmed = line.trim();
             if (!trimmed) return;
 
+            // Update response tracking for command queue
+            lastCommandResponse = trimmed;
+            lastCommandResponseTime = Date.now();
+
+            // Categorize the response
+            const category = parseResponseCategory(trimmed);
+            console.log("[HANDLE] Response type:", category.type, "content:", trimmed.substring(0, 60));
+
+            // Display in terminal if it's visible
+            if (document.getElementById('terminal') && !document.getElementById('terminal').classList.contains('hidden')) {
+                appendTerminalMessage(trimmed, 'received');
+            }
+
+            // Type 1: Contact Response (contains @pubkeyprefix)
+            if (category.type === 'contact') {
+                console.log("[HANDLE] Contact response, prefix:", category.pubkeyPrefix);
+                const incomingPrefix = category.pubkeyPrefix;
+                let messageText = category.message;
+                
+                // Check if this is an error message (CMS/CME ERROR)
+                const isErrorMsg = /^\+CM[ES]\s+ERROR:\s*\d+/.test(messageText);
+                // CMS ERROR 700 is a LoRa send timeout - should display on right (like sent message) but in red
+                const isSendError700 = /^\+CMS\s+ERROR:\s*700/.test(messageText);
+                
+                // Format error messages with detailed descriptions
+                if (isErrorMsg) {
+                    const formattedError = formatErrorMessage(messageText);
+                    console.log("[HANDLE] Error message formatted:", messageText, "->", formattedError);
+                    messageText = formattedError;
+                }
+                
+                // Find contact with matching prefix
+                const routeKey = contactKeyByPrefix(incomingPrefix);
+                if (routeKey) {
+                    const contactName = contacts.get(routeKey) ? contacts.get(routeKey).name : 'Unknown';
+                    console.log("[HANDLE] Routing message to contact:", contactName, "(key=" + routeKey + ")");
+                    console.log("[HANDLE] Message content:", messageText.substring(0, 100));
+                    
+                    let messageType = 'esp'; // Default to received (green, left)
+                    
+                    // Determine message type based on error type
+                    if (isSendError700) {
+                        // LoRa send timeout - display on right but in red to indicate send error
+                        console.log("[HANDLE] LoRa send error detected (CMS ERROR 700), displaying on right as send error");
+                        messageType = 'sendError';
+                    } else if (isErrorMsg) {
+                        // Other errors - display as error (red, left-aligned)
+                        console.log("[HANDLE] Error message detected, displaying as red error");
+                        messageType = 'error';
+                    } else {
+                        // Normal message from contact
+                        messageType = 'esp';
+                    }
+                    
+                    addMessage(messageText, messageType, routeKey);
+                    
+                    const isViewingChat = !document.getElementById('chat').classList.contains('hidden');
+                    const isCurrent = isViewingChat && activeKey === routeKey;
+                    if (!isCurrent) {
+                        console.log("[HANDLE] Contact not visible, incrementing unread count");
+                        incrementUnread(routeKey);
+                    }
+                } else {
+                    console.log("[HANDLE] No matching contact found for prefix:", incomingPrefix, "adding to system log");
+                    // No matching contact found, add to system or active chat
+                    let messageType = isSendError700 ? 'sendError' : (isErrorMsg ? 'error' : 'esp');
+                    addMessage(messageText, messageType, activeKey || SYSTEM_KEY);
+                }
+                return;
+            }
+
+            // Type 2: Device Info Response
+            if (category.type === 'deviceInfo') {
+                console.log("[HANDLE] Device info response:", trimmed.substring(0, 80));
+                handleDeviceInfoResponse(trimmed, blePrefix);
+                return;
+            }
+
+            // Type 3: Error Response
+            if (category.type === 'error') {
+                console.log("[HANDLE] Error response:", trimmed);
+                // Format error message with simplified description
+                let formattedError = trimmed;
+                const isErrorMsg = /^\+CM[ES]\s+ERROR:\s*\d+/.test(trimmed);
+                if (isErrorMsg) {
+                    formattedError = formatErrorMessage(trimmed);
+                    console.log("[HANDLE] Error message formatted:", trimmed, "->", formattedError);
+                }
+                showErrorNotification(formattedError);
+                addMessage(`Error: ${formattedError}`, 'sys', SYSTEM_KEY);
+                return;
+            }
+
+            // Type 3: Simple Response (OK, ERROR)
+            if (category.type === 'simple') {
+                console.log("[HANDLE] Simple response:", trimmed);
+                // Simple acknowledgments - generally handled by the command queue
+                if (trimmed === 'ERROR') {
+                    addMessage('Command failed', 'sys', SYSTEM_KEY);
+                }
+                return;
+            }
+            
+            console.log("[HANDLE] Unknown category, treating as unknown response");
+        }
+
+        /**
+         * Handle device info responses (Type 2 - starts with +)
+         */
+        function handleDeviceInfoResponse(trimmed, blePrefix) {
             // Parse AT+CONLST response header and entries.
             // Example:
             // +CONLST: 3/32
@@ -1370,6 +2099,7 @@
                 const m = trimmed.match(/\+CONLST:\s*(\d+)\/(\d+)/);
                 if (m) {
                     deviceInfo.contactsCount = `${m[1]}/${m[2]}`;
+                    console.log(`[DEBUG] Received CONLST header: ${m[1]}/${m[2]}`);
                 }
                 if (currentSyncSection === 'info') flashGreen('info');
                 return;
@@ -1435,21 +2165,33 @@
                 // Start collecting GPS info
                 collectingGpsInfo = true;
                 deviceInfo.gpsInfo = trimmed + '\n';
+                resetGpsIdleTimer();
                 return;
             }
 
-            // Continue collecting GPS info until OK
+            // Continue collecting GPS info until OK or next command or idle timeout
             if (collectingGpsInfo) {
                 deviceInfo.gpsInfo += trimmed + '\n';
-                if (trimmed.includes('OK')) {
+                if (trimmed.includes('OK') || trimmed.startsWith('+')) {
                     collectingGpsInfo = false;
+                    if (gpsIdleTimer) clearTimeout(gpsIdleTimer);
+                    if (trimmed.startsWith('+') && !trimmed.startsWith('+GPSINF')) {
+                        // This is a new command, process it normally
+                        // Don't return; fall through to handle it
+                    } else {
+                        return;
+                    }
+                } else {
+                    resetGpsIdleTimer(); // reset idle timer for each line received
+                    return;
                 }
-                return;
             }
 
             // Collect +CONINF: multi-line response.
             // Terminated by either an explicit OK or 100 ms of silence.
             if (trimmed === '+CONINF:') {
+                console.log(`[CONINF] Starting CONINF response collection`);
+                collectingGpsInfo = false; // Make sure GPS collection is stopped
                 coninfCollecting = true;
                 coninfLines = [];
                 resetConinfIdleTimer();
@@ -1457,11 +2199,16 @@
             }
 
             if (coninfCollecting) {
+                console.log(`[CONINF] Collecting line (${coninfLines.length} so far): "${trimmed.substring(0, 60)}"`);
                 if (trimmed === 'OK') {
+                    console.log(`[CONINF] Received OK, finalizing response with ${coninfLines.length} lines`);
                     finalizeConinfResponse();
                     return;
                 }
-                if (trimmed) coninfLines.push(trimmed);
+                if (trimmed) {
+                    coninfLines.push(trimmed);
+                    console.log(`[CONINF] Pushed to coninfLines, total now: ${coninfLines.length}`);
+                }
                 resetConinfIdleTimer(); // reset 100 ms silence window
                 return;
             }
@@ -1546,15 +2293,22 @@
 
             // Lines like: [0] prefix,type,name
             if (/^\[\d+\]/.test(trimmed)) {
+                console.log(`[DEBUG] Parsing contact line: ${trimmed}`);
                 const m = trimmed.match(/^\[\d+\]\s*([^,]+),\s*([0-9]+),\s*(.+)$/);
                 if (m) {
-                    const prefix = m[1].trim();
+                    const macAddress = m[1].trim();
                     const devType = m[2].trim(); // 0=none,1=client,2=repeater
-                    const name = m[3].trim();
-                    if (prefix && name) {
-                        ensureContact(name, prefix, devType);
-                        addMessage(`Contact added: ${name} (${prefix})`, 'sys', SYSTEM_KEY);
+                    const contactName = m[3].trim();
+                    // Extract first 12 chars of MAC address as pubkey prefix (e.g., 276e43cf3235 → 276e43cf)
+                    const pubkeyPrefix = macAddress.substring(0, 12);
+                    console.log(`[DEBUG] Contact parsed - macAddress=${macAddress}, devType=${devType}, contactName=${contactName}, pubkeyPrefix=${pubkeyPrefix}`);
+                    // Use pubkey prefix as the identifier (matches incoming messages with @prefix format)
+                    if (contactName && macAddress && pubkeyPrefix) {
+                        ensureContact(contactName, pubkeyPrefix, devType, macAddress);
+                        addMessage(`Contact added: ${contactName} (${macAddress}, pubkey: ${pubkeyPrefix})`, 'sys', SYSTEM_KEY);
                     }
+                } else {
+                    console.log(`[DEBUG] Failed to parse contact line: ${trimmed}`);
                 }
                 return;
             }
@@ -1620,17 +2374,22 @@
         }
 
         function handleIncomingText(text) {
+            console.log("[DATA] Incoming text (" + text.length + " bytes):", JSON.stringify(text));
             incomingBuffer += text;
+            console.log("[DATA] Buffer size now:", incomingBuffer.length);
 
-            // Reset 300ms idle timer — flushes anything that has no terminator at all.
+            // Eagerly extract and process complete BLE response frames (for multi-packet messages)
+            drainFrames();
+
+            // Use 100ms response batching timer: when data arrives, wait 100ms to collect
+            // all related responses that arrive within the same batch before processing.
+            // This handles cases where multiple AT command responses arrive close together.
             if (incomingIdleTimer) clearTimeout(incomingIdleTimer);
             incomingIdleTimer = setTimeout(() => {
+                console.log("[DATA] Response batch timeout (100ms), processing accumulated responses");
                 incomingIdleTimer = null;
                 flushIncomingBuffer();
-            }, 300);
-
-            // Eagerly extract and process complete BLE response frames.
-            drainFrames();
+            }, 100);
         }
 
         /**
@@ -1648,12 +2407,15 @@
             // appears inside message text (those are followed by more chars).
             const frameEndRe = /@([0-9a-fA-F]{12})(?=\r\n|$)/;
             let m;
+            let frameCount = 0;
 
             // ── 1. Extract all complete @<prefix>-terminated frames ────────
             while ((m = frameEndRe.exec(incomingBuffer)) !== null) {
+                frameCount++;
                 const body   = incomingBuffer.slice(0, m.index);
                 const prefix = m[1];
                 let   consume = m.index + m[0].length;
+                console.log("[FRAME] Frame #" + frameCount + " prefix:", prefix, "body length:", body.length);
                 // Consume the \r\n after @prefix if present
                 if (incomingBuffer.startsWith('\r\n', consume)) consume += 2;
                 incomingBuffer = incomingBuffer.slice(consume);
@@ -1661,19 +2423,49 @@
                 // Split body into individual lines and process each
                 // with the extracted BLE prefix.
                 const lines = body.split(/\r\n|\r|\n/);
+                console.log("[FRAME] Processing", lines.length, "lines with prefix:", prefix);
                 for (const raw of lines) {
                     const line = raw.trim();
-                    if (line) handleIncomingLine(line, prefix);
+                    if (line) {
+                        // Reconstruct the full line with @pubkey so parseResponseCategory can identify it as contact message
+                        const lineWithPrefix = line + "@" + prefix;
+                        console.log("[FRAME] Processing frame line (with prefix):", line.substring(0, 40) + "@" + prefix);
+                        handleIncomingLine(lineWithPrefix, prefix);
+                    }
                 }
             }
 
             // ── 2. Process remaining complete \r\n-terminated lines ───────
             //    These are responses WITHOUT @prefix (local BLE commands).
+            //    BUT: With 100ms batching, only process if we're sure the frame is complete.
+            //    Skip lines if line ends with @+incomplete hex data (fragmented frame).
             let idx;
+            let lineCount = 0;
             while ((idx = incomingBuffer.indexOf('\r\n')) !== -1) {
-                const line = incomingBuffer.slice(0, idx).trim();
+                const afterLine = incomingBuffer.slice(idx + 2);
+                
+                // Stop if next data is an incomplete @prefix (less than 13 chars total for @+12hex)
+                if (afterLine.startsWith('@') && afterLine.length < 13) {
+                    console.log("[FRAME] Incomplete @prefix marker detected, batching more data");
+                    break;
+                }
+                
+                // Also check if the current line itself ends with @ (incomplete marker)
+                // This shouldn't happen with proper \r\n framing but safety check
+                const currentLine = incomingBuffer.slice(0, idx).trim();
+                if (currentLine.endsWith('@')) {
+                    console.log("[FRAME] Line ends with @, waiting for pubkey prefix to complete");
+                    break;
+                }
+                
+                lineCount++;
+                console.log("[LINE] No-prefix line #" + lineCount + ":", currentLine.substring(0, 50));
                 incomingBuffer = incomingBuffer.slice(idx + 2);
-                if (line) handleIncomingLine(line, null);
+                if (currentLine) handleIncomingLine(currentLine, null);
+            }
+            
+            if (frameCount === 0 && lineCount === 0 && incomingBuffer.length > 0) {
+                console.log("[DRAIN] Buffer contains incomplete data:", incomingBuffer.substring(0, 100));
             }
         }
 
@@ -1682,6 +2474,7 @@
          * Handles data that arrives without a trailing newline.
          */
         function flushIncomingBuffer() {
+            console.log("[FLUSH] Starting flush, buffer size:", incomingBuffer.length);
             if (!incomingBuffer) return;
 
             // Try frame extraction one last time.
@@ -1690,6 +2483,7 @@
             // Whatever remains has no terminator — process as-is.
             if (incomingBuffer) {
                 const remaining = incomingBuffer.trim();
+                console.log("[FLUSH] Flushing remaining data:", remaining.substring(0, 100));
                 incomingBuffer = '';
                 if (remaining) handleIncomingLine(remaining, null);
             }
@@ -1700,18 +2494,20 @@
         }
 
         async function connectBLE() {
-            console.log("Connect button clicked");
+            console.log("[MAIN] Connect button clicked");
             try {
                 if (!navigator.bluetooth) {
-                    console.log("Web Bluetooth not supported");
+                    console.log("[MAIN] Web Bluetooth not supported");
                     addMessage("Web Bluetooth is not supported. Use Chrome/Edge on Android/Windows.", "sys", SYSTEM_KEY);
                     return;
                 }
 
+                console.log("[MAIN] Bluetooth API available");
                 // Always return to Contacts screen on connect/disconnect.
                 showContacts();
 
                 if (isBleConnected()) {
+                    console.log("[MAIN] Already connected, disconnecting");
                     device.gatt.disconnect();
                     setStatus(false, 'Disconnected');
                     addMessage("Disconnected.", "sys", SYSTEM_KEY);
@@ -1723,13 +2519,16 @@
                 addMessage("Scanning for devices...", "sys", SYSTEM_KEY);
 
                 // Start from a blank Contacts screen on every new connect.
+                console.log("[MAIN] Resetting contacts");
                 resetContacts();
                 incomingBuffer = '';
                 setContactsLoading(true, 'Waiting for contacts...');
 
+                console.log("[MAIN] Requesting device with SERVICE_UUID:", SERVICE_UUID);
                 device = await navigator.bluetooth.requestDevice({
                     filters: [{ services: [SERVICE_UUID] }]
                 });
+                console.log("[MAIN] Device selected:", device.name);
 
                 device.addEventListener('gattserverdisconnected', () => {
                     setStatus(false, 'Disconnected');
@@ -1778,7 +2577,10 @@
                 setStatus(true, device.name ? `Connected: ${device.name}` : 'Connected');
                 addMessage("Connected.", "sys", SYSTEM_KEY);
 
-                // Request device info immediately after connecting
+                // Wait 1 second for system to stabilize before requesting device info
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Request device info after stabilization delay
                 try {
                     await requestDeviceInfo();
                     addMessage("Device info loaded.", "sys", SYSTEM_KEY);
@@ -1815,13 +2617,17 @@
             try {
                 const prefix = pubkeyPrefix(activeKey);
                 const outgoing = `${val}@${prefix}\r\n`;
-                const ok = await bleWriteChunked(outgoing);
-                if (ok) {
-                    addMessage(val, "me", activeKey);
-                    input.value = "";
-                } else {
-                    addMessage("Send error: BLE write failed", "sys", SYSTEM_KEY);
-                }
+                
+                // Use command queue to ensure ordered delivery
+                await commandQueue.enqueue(outgoing, {
+                    timeout: 5000,
+                    onResponse: (response) => {
+                        // Response is handled by handleIncomingLine
+                        addMessage(val, "me", activeKey);
+                    }
+                });
+                
+                input.value = "";
             } catch (err) {
                 addMessage("Send error: " + err, "sys", SYSTEM_KEY);
             }
@@ -1880,31 +2686,70 @@
             }, 150);
         });
 
-        async function requestDeviceInfo() {
-            if (!charTX || !isBleConnected()) return;
-            // Reset all fields so confirmFns start from a clean baseline
-            deviceInfo.deviceName   = '';
-            deviceInfo.publicKey    = '';
-            deviceInfo.networkKey   = '';
-            deviceInfo.channel      = '';
-            deviceInfo.contactsCount = '';
-            deviceInfo.loraConfig   = '';
-            deviceInfo.gpsEnabled   = '';
-            deviceInfo.gpsInfo      = '';
-            deviceInfo.telemetry.battery = '';
-            deviceInfo.telemetry.noise   = '';
+        // Terminal input event listeners
+        document.getElementById('terminal-input').addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                sendTerminalCommand();
+            } else if (event.key === 'Escape') {
+                const ac = document.getElementById('terminalAutocomplete');
+                ac.classList.add('hidden');
+                ac.innerHTML = '';
+            }
+        });
 
-            // Each command: 3 retries × 1 s timeout
-            await sendATWithRetry('AT+SYSID?\r\n',     () => Boolean(deviceInfo.deviceName),        3, 1000);
-            await sendATWithRetry('AT+SYSPUBK?\r\n',   () => Boolean(deviceInfo.publicKey),         3, 1000);
-            await sendATWithRetry('AT+NWKKEY?\r\n',    () => Boolean(deviceInfo.networkKey),        3, 1000);
-            await sendATWithRetry('AT+LRCH?\r\n',      () => deviceInfo.channel !== '',             3, 1000);
+        document.getElementById('terminal-input').addEventListener('input', () => {
+            const val = document.getElementById('terminal-input').value;
+            const ac  = document.getElementById('terminalAutocomplete');
+            const query = val.toUpperCase();
+            if (!query) { ac.classList.add('hidden'); ac.innerHTML = ''; return; }
+            // Sort: startsWith first, then other includes
+            const exact   = AT_COMMANDS.filter(c => c.toUpperCase().startsWith(query));
+            const partial = AT_COMMANDS.filter(c => !c.toUpperCase().startsWith(query) && c.toUpperCase().includes(query));
+            const matches = [...exact, ...partial].slice(0, 20); // cap at 20
+            if (matches.length === 0) { ac.classList.add('hidden'); ac.innerHTML = ''; return; }
+            ac.innerHTML = '';
+            for (const cmd of matches) {
+                const item = document.createElement('div');
+                item.className = 'at-autocomplete-item';
+                const idx = cmd.toUpperCase().indexOf(query);
+                if (idx >= 0) {
+                    item.innerHTML = escapeHtml(cmd.slice(0, idx))
+                        + '<strong>' + escapeHtml(cmd.slice(idx, idx + query.length)) + '</strong>'
+                        + escapeHtml(cmd.slice(idx + query.length));
+                } else {
+                    item.textContent = cmd;
+                }
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); // keep input focused
+                    document.getElementById('terminal-input').value = cmd;
+                    document.getElementById('terminal-input').focus();
+                    ac.classList.add('hidden');
+                    ac.innerHTML = '';
+                });
+                ac.appendChild(item);
+            }
+            ac.classList.remove('hidden');
+        });
+
+        document.getElementById('terminal-input').addEventListener('blur', () => {
+            setTimeout(() => {
+                const ac = document.getElementById('terminalAutocomplete');
+                ac.classList.add('hidden');
+                ac.innerHTML = '';
+            }, 150);
+        });
+
+        async function requestDeviceInfo() {
+            console.log("[CMD] requestDeviceInfo called");
+            if (!charTX || !isBleConnected()) {
+                console.log("[CMD] Cannot request - charTX:", !!charTX, "connected:", isBleConnected());
+                return;
+            }
+            // Only request contact list on startup
+            console.log("[CMD] Sending AT+CONLST? with retries");
             await sendATWithRetry('AT+CONLST?\r\n',    () => Boolean(deviceInfo.contactsCount),     3, 1000);
-            await sendATWithRetry('AT+LRCFG?\r\n',     () => Boolean(deviceInfo.loraConfig),        3, 1000);
-            await sendATWithRetry('AT+GPSEN?\r\n',     () => deviceInfo.gpsEnabled !== '',          3, 1000);
-            await sendATWithRetry('AT+GPSINF?\r\n',    () => Boolean(deviceInfo.gpsInfo),           3, 1000);
-            await sendATWithRetry('AT+SYSSTATUS?\r\n', () => Boolean(deviceInfo.telemetry.battery), 3, 1000);
-            populateSettings();
+            console.log("[CMD] requestDeviceInfo completed");
         }
 
         function flashGreen(section) {
@@ -1931,7 +2776,15 @@
         }
 
         function showContactInfo(c) {
-            currentContactInfoPrefix = pubkeyPrefix(c.pubkey);
+            // Cancel any ongoing device info loading
+            isLoadingDeviceInfo = false;
+            const loadingOverlay = document.getElementById('settingsLoadingOverlay');
+            if (loadingOverlay) loadingOverlay.classList.add('hidden');
+            
+            // Use MAC address for AT+CONINF command, not the contact name
+            const macAddress = contactMacMap.get(c.pubkey) || c.macAddress || c.pubkey;
+            console.log(`[DEBUG] showContactInfo: c.pubkey=${c.pubkey}, macAddress=${macAddress}`);
+            currentContactInfoPrefix = macAddress;
             // Use cached data if available so the screen is populated instantly
             const cached = contactInfoCache.get(currentContactInfoPrefix);
             if (cached) {
@@ -1951,6 +2804,7 @@
             document.getElementById('chat').classList.add('hidden');
             document.getElementById('settings').classList.add('hidden');
             document.getElementById('contactInfo').classList.remove('hidden');
+            document.getElementById('terminal').classList.add('hidden');
             document.getElementById('backBtn').classList.remove('hidden');
             document.querySelector('.header-title').classList.remove('hidden');
             document.getElementById('chatHeader').classList.add('hidden');
@@ -1965,24 +2819,26 @@
         }
 
         async function requestContactInfoSection() {
-            if (!charTX || !currentContactInfoPrefix) return;
+            if (!charTX || !currentContactInfoPrefix) {
+                console.log('[CONINF] Cannot request - charTX:', !!charTX, 'prefix:', currentContactInfoPrefix);
+                return;
+            }
+            console.log('[CONINF] requestContactInfoSection called for prefix:', currentContactInfoPrefix);
             isContactInfoSyncing = true;
-            const sec = document.getElementById('contactInfoSection');
-            if (sec) sec.classList.add('syncing');
+            const loadingEl = document.getElementById('contactInfoLoading');
+            if (loadingEl) loadingEl.classList.remove('hidden');
             // Remove stale cache so sendATWithRetry waits for a fresh response
             contactInfoCache.delete(currentContactInfoPrefix);
             // Put this prefix at the head of the queue (remove duplicates first)
             coninfQueue = [currentContactInfoPrefix, ...coninfQueue.filter(p => p !== currentContactInfoPrefix)];
+            console.log('[CONINF] Queue:', coninfQueue);
             if (!coninfFetching) processConinfQueue();
         }
 
         function flashGreenContactInfo() {
             isContactInfoSyncing = false;
-            const sec = document.getElementById('contactInfoSection');
-            if (!sec) return;
-            sec.classList.remove('syncing');
-            sec.classList.add('success');
-            setTimeout(() => sec.classList.remove('success'), 1000);
+            const loadingEl = document.getElementById('contactInfoLoading');
+            if (loadingEl) loadingEl.classList.add('hidden');
         }
 
         /** Parse raw CONINF lines into a plain object. Pure – no side-effects. */
@@ -1991,7 +2847,11 @@
                 const line = lines.find(l => l.startsWith(key + ':'));
                 return line ? line.slice(key.length + 1).trim() : '';
             };
-            return {
+            
+            // Debug: log raw lines to understand format
+            console.log(`[PARSE-CONINF] Raw lines received (${lines.length} total):`, lines);
+            
+            const result = {
                 name:         get('Name'),
                 type:         get('Type'),
                 pubKeyPrefix: get('PubKeyPrefix'),
@@ -2004,15 +2864,31 @@
                 outPath:      get('OutPath'),
                 lastAdvert:   get('LastAdvert(GMT+7)'),
                 lastMod:      get('LastMod(GMT+7)'),
-                gps:          get('GPS')
+                gps:          get('GPS'),
+                index:        get('Index')  // Add Index for completeness
             };
+            console.log(`[PARSE-CONINF] Parsed result:`, result);
+            return result;
         }
 
         /** Restart the 100-ms idle timer that finalises a CONINF response. */
         function resetConinfIdleTimer() {
             if (coninfIdleTimer) clearTimeout(coninfIdleTimer);
             coninfIdleTimer = setTimeout(() => {
-                if (coninfCollecting) finalizeConinfResponse();
+                if (coninfCollecting) {
+                    console.log(`[CONINF] Idle timeout triggered, finalizing response`);
+                    finalizeConinfResponse();
+                }
+            }, 100);
+        }
+
+        function resetGpsIdleTimer() {
+            if (gpsIdleTimer) clearTimeout(gpsIdleTimer);
+            gpsIdleTimer = setTimeout(() => {
+                if (collectingGpsInfo) {
+                    console.log(`[GPS] Idle timeout triggered, finishing GPS collection`);
+                    collectingGpsInfo = false;
+                }
             }, 100);
         }
 
@@ -2024,12 +2900,15 @@
         function finalizeConinfResponse() {
             if (coninfIdleTimer) { clearTimeout(coninfIdleTimer); coninfIdleTimer = null; }
             coninfCollecting = false;
+            console.log(`[CONINF] Finalizing response with ${coninfLines.length} lines:`, coninfLines);
 
             const parsed = parseConinfLines(coninfLines);
+            console.log(`[CONINF] Parsed data:`, parsed);
             coninfLines = [];
 
             // Store in cache and enrich the contact row so the list subtitle updates
             if (parsed.pubKeyPrefix) {
+                console.log(`[CONINF] Caching for prefix: ${parsed.pubKeyPrefix}`);
                 contactInfoCache.set(parsed.pubKeyPrefix, parsed);
                 for (const [pk, c] of contacts) {
                     if (pubkeyPrefix(pk) === parsed.pubKeyPrefix) {
@@ -2044,6 +2923,8 @@
                         break;
                     }
                 }
+            } else {
+                console.log(`[CONINF] No pubKeyPrefix in parsed data`);
             }
 
             // Update the Contact Info screen if it is open for this contact
@@ -2091,23 +2972,85 @@
          * Returns true when confirmed, false after all retries are exhausted.
          */
         async function sendATWithRetry(cmd, confirmFn, maxRetries = 3, timeoutMs = 1000) {
+            console.log("[RETRY] sendATWithRetry:", cmd.trim(), "maxRetries:", maxRetries, "timeout:", timeoutMs);
             for (let attempt = 0; attempt < maxRetries; attempt++) {
-                if (!charTX || !isBleConnected()) return false;
+                if (!charTX || !isBleConnected()) {
+                    console.log("[RETRY] Attempt", attempt + 1, "- not connected");
+                    return false;
+                }
+                console.log("[RETRY] Attempt", attempt + 1, "- writing:", cmd.trim());
                 const ok = await bleWriteChunked(cmd);
                 if (!ok) {
-                    console.error('sendATWithRetry write error:', cmd.trim());
+                    console.error('[RETRY] Write error:', cmd.trim());
                     return false;
                 }
                 const deadline = Date.now() + timeoutMs;
+                let confirmed = false;
                 while (Date.now() < deadline) {
-                    if (confirmFn()) return true;
+                    if (confirmFn()) {
+                        confirmed = true;
+                        console.log('[RETRY] Confirmed on attempt', attempt + 1);
+                        return true;
+                    }
                     await new Promise(r => setTimeout(r, 50));
                 }
-                if (confirmFn()) return true;
-                if (attempt < maxRetries - 1)
-                    console.warn(`No response (attempt ${attempt + 1}/${maxRetries}): ${cmd.trim()}`);
+                if (confirmFn()) {
+                    console.log('[RETRY] Confirmed after timeout check');
+                    return true;
+                }
+                if (!confirmed && attempt < maxRetries - 1) {
+                    console.warn(`[RETRY] No response (attempt ${attempt + 1}/${maxRetries}): ${cmd.trim()}`);
+                }
             }
-            console.warn(`Giving up after ${maxRetries} retries: ${cmd.trim()}`);
+            console.warn(`[RETRY] Giving up after ${maxRetries} retries: ${cmd.trim()}`);
+            // Show error notification for timeout
+            showErrorNotification(`AT command timeout: ${cmd.trim()}`);
+            return false;
+        }
+
+        /**
+         * Send AT command and wait for response within 500ms.
+         * Retries up to 3 times total if no response received.
+         * Returns true if response received, false if all retries exhausted.
+         */
+        async function sendATCommand(cmd, maxRetries = 3) {
+            if (!charTX || !isBleConnected()) return false;
+            
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    // Clear response buffer before sending
+                    lastCommandResponse = null;
+                    lastCommandResponseTime = null;
+                    
+                    const ok = await bleWriteChunked(cmd);
+                    if (!ok) {
+                        console.error('sendATCommand write error:', cmd.trim());
+                        continue;
+                    }
+                    
+                    // Wait up to 500ms for response
+                    const deadline = Date.now() + 500;
+                    while (Date.now() < deadline) {
+                        if (lastCommandResponseTime !== null && Date.now() - lastCommandResponseTime > 50) {
+                            // Response arrived and stable for 50ms
+                            return true;
+                        }
+                        await new Promise(r => setTimeout(r, 10));
+                    }
+                    
+                    // Check if we got any response before timeout
+                    if (lastCommandResponse !== null) {
+                        return true;
+                    }
+                    
+                    // No response, will retry
+                    console.warn(`No response (attempt ${attempt + 1}/${maxRetries}): ${cmd.trim()}`);
+                } catch (e) {
+                    console.error('sendATCommand error:', cmd.trim(), e);
+                }
+            }
+            
+            console.warn(`Giving up after ${maxRetries} attempts: ${cmd.trim()}`);
             return false;
         }
 
@@ -2134,15 +3077,45 @@
             if (coninfFetching) return;  // already running
             coninfFetching = true;
             while (coninfQueue.length > 0) {
-                if (!charTX || !isBleConnected()) break;
+                if (!charTX || !isBleConnected()) {
+                    console.log('[CONINF] Not connected, stopping queue');
+                    break;
+                }
                 const prefix = coninfQueue.shift();
-                if (contactInfoCache.has(prefix)) continue;  // already cached – skip
+                console.log('[CONINF] Processing prefix:', prefix);
+                if (contactInfoCache.has(prefix)) {
+                    console.log('[CONINF] Already cached, skipping');
+                    continue;  // already cached – skip
+                }
 
-                await sendATWithRetry(
+                console.log('[CONINF] Sending AT+CONINF=' + prefix);
+                const success = await sendATWithRetry(
                     `AT+CONINF=${prefix}\r\n`,
                     () => contactInfoCache.has(prefix),
                     3, 1000
                 );
+
+                if (!success) {
+                    console.log('[CONINF] Failed to get response for prefix:', prefix);
+                    // Show error but DON'T auto-switch screens
+                    // User must manually close the modal
+                    const errorMsg = `Unable to load contact info. Please try again.`;
+                    console.error(errorMsg);
+                    document.getElementById('ciName').textContent = '(unavailable)';
+                    document.getElementById('ciType').textContent = '—';
+                    document.getElementById('ciPubKeyPrefix').textContent = '—';
+                    document.getElementById('ciPubKey').textContent = '—';
+                    document.getElementById('ciRSSI').textContent = '—';
+                    document.getElementById('ciSNR').textContent = '—';
+                    document.getElementById('ciRoute').textContent = '—';
+                    document.getElementById('ciHops').textContent = '—';
+                    document.getElementById('ciOutPath').textContent = '—';
+                    document.getElementById('ciLastAdvert').textContent = '—';
+                    document.getElementById('ciLastMod').textContent = '—';
+                    document.getElementById('ciGPS').textContent = '—';
+                    isContactInfoSyncing = false;
+                    continue;
+                }
 
                 // Clean up any stale partial-collection state
                 if (coninfCollecting) {
@@ -2246,6 +3219,64 @@
             if (type === 'CONWPATH') return 'contactInfo';
         }
 
+        /**
+         * Request all device info sections in sequence with loading spinners.
+         * Called when user opens Settings screen.
+         */
+        async function requestAllInfoSections() {
+            if (!charTX || !isBleConnected()) return;
+            
+            // Mark that we're loading
+            isLoadingDeviceInfo = true;
+            
+            // Show loading overlay
+            const loadingOverlay = document.getElementById('settingsLoadingOverlay');
+            if (loadingOverlay) loadingOverlay.classList.remove('hidden');
+            
+            // Reset device info to show loading state
+            deviceInfo.deviceName   = '';
+            deviceInfo.publicKey    = '';
+            deviceInfo.networkKey   = '';
+            deviceInfo.channel      = '';
+            deviceInfo.contactsCount = '';
+            deviceInfo.loraConfig   = '';
+            deviceInfo.gpsEnabled   = '';
+            deviceInfo.gpsInfo      = '';
+            deviceInfo.telemetry.battery = '';
+            deviceInfo.telemetry.noise   = '';
+            
+            // Show loading spinners on all sections
+            document.querySelectorAll('.settings-section').forEach(sec => sec.classList.add('syncing'));
+            
+            // Set timeout to hide loading after max 15 seconds
+            const timeoutId = setTimeout(() => {
+                if (loadingOverlay && isLoadingDeviceInfo) loadingOverlay.classList.add('hidden');
+                document.querySelectorAll('.settings-section').forEach(sec => sec.classList.remove('syncing'));
+                isLoadingDeviceInfo = false;
+                console.warn('Device info loading timeout - showing cached data');
+            }, 15000);
+            
+            try {
+                // Request each section sequentially, but check if user navigated away
+                if (!isLoadingDeviceInfo) { clearTimeout(timeoutId); return; }
+                await requestInfoSection();
+                if (!isLoadingDeviceInfo) { clearTimeout(timeoutId); return; }
+                await requestLoRaSection();
+                if (!isLoadingDeviceInfo) { clearTimeout(timeoutId); return; }
+                await requestGPSSection();
+                if (!isLoadingDeviceInfo) { clearTimeout(timeoutId); return; }
+                await requestTelemetrySection();
+            } finally {
+                clearTimeout(timeoutId);
+                // Hide loading overlay and remove syncing state only if still on settings screen
+                if (document.getElementById('settings').classList.contains('hidden') === false) {
+                    if (loadingOverlay) loadingOverlay.classList.add('hidden');
+                    document.querySelectorAll('.settings-section').forEach(sec => sec.classList.remove('syncing'));
+                }
+                isLoadingDeviceInfo = false;
+            }
+        }
+
         async function requestInfoSection() {
             if (!charTX) return;
             currentSyncSection = 'info';
@@ -2259,14 +3290,13 @@
             ];
             for (const cmd of commands) {
                 try {
-                    await charTX.writeValue(new TextEncoder().encode(cmd));
-                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await commandQueue.enqueue(cmd, { timeout: 3000 });
                 } catch (e) {
                     console.error('Failed to send AT command:', cmd, e);
                 }
             }
             // Update display after sending
-            setTimeout(() => populateSettings(), 1500);
+            setTimeout(() => populateSettings(), 500);
         }
 
         async function requestLoRaSection() {
@@ -2274,7 +3304,7 @@
             currentSyncSection = 'lora';
             document.querySelector('.settings-section:nth-child(2)').classList.add('syncing');
             try {
-                await charTX.writeValue(new TextEncoder().encode("AT+LRCFG?\r\n"));
+                await commandQueue.enqueue("AT+LRCFG?\r\n", { timeout: 3000 });
             } catch (e) {
                 console.error('Failed to send AT command: AT+LRCFG?', e);
             }
@@ -2292,14 +3322,13 @@
             ];
             for (const cmd of commands) {
                 try {
-                    await charTX.writeValue(new TextEncoder().encode(cmd));
-                    await new Promise(resolve => setTimeout(resolve, 200));
+                    await commandQueue.enqueue(cmd, { timeout: 3000 });
                 } catch (e) {
                     console.error('Failed to send AT command:', cmd, e);
                 }
             }
             // Update display after sending
-            setTimeout(() => populateSettings(), 1000);
+            setTimeout(() => populateSettings(), 500);
         }
 
         async function requestTelemetrySection() {
@@ -2307,12 +3336,55 @@
             currentSyncSection = 'telemetry';
             document.querySelector('.settings-section:nth-child(4)').classList.add('syncing');
             try {
-                await charTX.writeValue(new TextEncoder().encode("AT+SYSSTATUS?\r\n"));
+                await commandQueue.enqueue("AT+SYSSTATUS?\r\n", { timeout: 3000 });
             } catch (e) {
                 console.error('Failed to send AT command: AT+SYSSTATUS?', e);
             }
             // Update display after sending
             setTimeout(() => populateSettings(), 500);
+        }
+
+        /**
+         * Append a message to terminal window (raw AT command display)
+         * type: 'sent' | 'received' | 'error'
+         */
+        function appendTerminalMessage(text, type = 'received') {
+            const terminalWindow = document.getElementById('terminal-window');
+            const msgEl = document.createElement('div');
+            msgEl.className = `terminal-msg terminal-${type}`;
+            msgEl.textContent = text;
+            terminalWindow.appendChild(msgEl);
+            // Auto-scroll to bottom
+            terminalWindow.scrollTop = terminalWindow.scrollHeight;
+        }
+
+        /**
+         * Send raw AT command from terminal input (no contact prefix routing)
+         * Sends exactly what user types, displays exactly what device responds
+         */
+        async function sendTerminalCommand() {
+            const input = document.getElementById('terminal-input');
+            const cmd = input.value.trim();
+            if (!cmd) return;
+            if (!charTX || !isBleConnected()) {
+                appendTerminalMessage('Error: Not connected', 'error');
+                return;
+            }
+
+            try {
+                // Send exactly as typed through command queue
+                const fullCmd = cmd.endsWith('\r\n') ? cmd : cmd + '\r\n';
+                appendTerminalMessage('> ' + cmd, 'sent');
+                
+                await commandQueue.enqueue(fullCmd, {
+                    timeout: 3000
+                });
+                
+                input.value = '';
+                input.focus();
+            } catch (e) {
+                appendTerminalMessage('Error: ' + e.message, 'error');
+            }
         }
 
         async function sendCurrentSetting() {
@@ -2380,11 +3452,11 @@
                     return;
             }
 
-            const ok = await bleWriteChunked(command);
-            if (ok) {
+            try {
+                await commandQueue.enqueue(command, { timeout: 3000 });
                 addMessage(`Sent: ${command.trim()}`, "sys", SYSTEM_KEY);
-            } else {
-                addMessage(`Error sending ${type}: BLE write failed`, "sys", SYSTEM_KEY);
+            } catch (e) {
+                addMessage(`Error sending ${type}: ${e.message}`, "sys", SYSTEM_KEY);
                 // Mirror the device ERROR path so the UI resets cleanly
                 if (pendingSetting) {
                     const item = pendingSetting.el.parentElement;
@@ -2481,11 +3553,24 @@
             });
         }
 
-        async function showSettings() {
+        async function showSettings(skipReload = false) {
+            // Cancel any ongoing device info loading
+            isLoadingDeviceInfo = false;
+            
+            // Clean up any pending states that might cause hangs
+            if (coninfIdleTimer) { clearTimeout(coninfIdleTimer); coninfIdleTimer = null; }
+            coninfCollecting = false;
+            coninfLines = [];
+            collectingGpsInfo = false;
+            lastCommandResponse = null;
+            lastCommandResponseTime = null;
+            
             // Show settings screen; back button returns to contacts
             document.getElementById('contacts').classList.add('hidden');
             document.getElementById('chat').classList.add('hidden');
             document.getElementById('settings').classList.remove('hidden');
+            document.getElementById('contactInfo').classList.add('hidden');
+            document.getElementById('terminal').classList.add('hidden');
             document.getElementById('backBtn').classList.remove('hidden');
             document.querySelector('.header-title').classList.remove('hidden');
             document.getElementById('chatHeader').classList.add('hidden');
@@ -2500,6 +3585,11 @@
 
             // Populate UI with stored data
             populateSettings();
+            
+            // Auto-fetch device info if connected and not skipping reload
+            if (!skipReload && charTX && isBleConnected()) {
+                await requestAllInfoSections();
+            }
         }
 
         // ── Header: sync contact list ─────────────────────────────────────────
@@ -2509,15 +3599,30 @@
             const btn  = document.getElementById('syncContactsBtn');
             if (btn)  btn.disabled = true;
             if (icon) icon.classList.add('spin-anim');
+            
+            // Clear existing contacts and set loading state
+            contacts.clear();
+            contactOrderCounter = 0;
+            setContactsLoading(true, 'Syncing contacts...');
+            console.log('[DEBUG] syncContactList: cleared contacts and set loading');
+            
             try {
+                console.log('[DEBUG] syncContactList: sending AT+CONLST?');
                 await charTX.writeValue(new TextEncoder().encode('AT+CONLST?\r\n'));
             } catch (e) {
                 console.error('syncContactList error:', e);
+                setContactsLoading(false);
             }
+            
+            // Wait 3 seconds for responses, then stop loading
             setTimeout(() => {
                 if (btn)  btn.disabled = false;
                 if (icon) icon.classList.remove('spin-anim');
-            }, 2000);
+                console.log('[DEBUG] syncContactList: timeout reached, final contacts.size=' + contacts.size);
+                if (contacts.size === 0) {
+                    setContactsLoading(false);
+                }
+            }, 3000);
         }
 
         // ── Header: advert popup ──────────────────────────────────────────
@@ -2546,7 +3651,7 @@
                     const val   = item.dataset.val;
                     const label = val === '0' ? 'Direct' : 'Flood';
                     try {
-                        await charTX.writeValue(new TextEncoder().encode(`AT+LRADV=${val}\r\n`));
+                        await commandQueue.enqueue(`AT+LRADV=${val}\r\n`, { timeout: 3000 });
                         addMessage(`Advert ${label} sent (AT+LRADV=${val})`, 'sys', SYSTEM_KEY);
                     } catch (err) {
                         addMessage('Error sending AT+LRADV: ' + err, 'sys', SYSTEM_KEY);
@@ -2587,13 +3692,13 @@
                 const pk = inp.value.trim();
                 if (!pk) { inp.focus(); return; }
                 popup.remove();
-                const ok = await bleWriteChunked(`AT+CONADD=${pk}\r\n`);
-                if (ok) {
+                try {
+                    await commandQueue.enqueue(`AT+CONADD=${pk}\r\n`, { timeout: 3000 });
                     addMessage(`Sent: AT+CONADD=${pk}`, 'sys', SYSTEM_KEY);
                     // Refresh contact list after a short delay
                     setTimeout(() => syncContactList(), 1000);
-                } else {
-                    addMessage('Error sending AT+CONADD: BLE write failed', 'sys', SYSTEM_KEY);
+                } catch (e) {
+                    addMessage('Error sending AT+CONADD: ' + e.message, 'sys', SYSTEM_KEY);
                 }
             });
         }
