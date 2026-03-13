@@ -913,6 +913,227 @@
             max-height: calc(70vh - 140px);
             overflow-y: auto;
         }
+
+        /* Success Notification - Centered Modal */
+        .success-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2ecc71; /* Green */
+            color: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 10000;
+            animation: zoomIn 0.3s ease-out;
+            min-width: 400px;
+            max-width: 700px;
+            max-height: 70vh;
+        }
+        .success-notification.hidden { display: none; }
+        .success-notification.closing { animation: zoomOut 0.3s ease-in; }
+        .success-content { padding: 24px; overflow-y: auto; max-height: calc(70vh - 80px); }
+        .success-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .success-header .material-icons { font-size: 28px; flex-shrink: 0; }
+        .success-title { font-weight: 600; font-size: 16px; flex-grow: 1; }
+        .success-close { background: none; border: none; color: white; padding: 4px; border-radius: 50%; display: flex; align-self: center; justify-content: center; cursor: pointer; transition: background-color 0.2s; opacity: 0.8; }
+        .success-close:hover { opacity: 1; background-color: rgba(255, 255, 255, 0.2); }
+        .success-message { font-size: 15px; line-height: 1.5; word-break: break-word; white-space: pre-wrap; margin-bottom: 0;}
+
+        /* Edit Parameter Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal:not(.hidden) {
+            display: flex;
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.22);
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            padding: 4px;
+        }
+
+        .modal-close:hover {
+            color: #000;
+        }
+
+        .modal-body {
+            padding: 20px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .modal-field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .modal-field label {
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .modal-field input {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .modal-field input:focus {
+            border-color: var(--header);
+            box-shadow: 0 0 0 2px rgba(44, 62, 80, 0.15);
+        }
+
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn-primary, .btn-secondary {
+            padding: 10px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--header);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #eee;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #ddd;
+        }
+
+        /* Edit icon for contact info fields */
+        .field-editable {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .edit-icon {
+            cursor: pointer;
+            color: var(--header);
+            opacity: 0.5;
+            transition: opacity 0.2s;
+            padding: 4px 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .field-editable:hover .edit-icon {
+            opacity: 0.8;
+        }
+
+        .edit-icon:hover {
+            opacity: 1 !important;
+            color: #0078d4;
+        }
+
+        .field-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .spinner-small {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--header);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
     </style>
 </head>
 
@@ -989,11 +1210,17 @@
                 <div class="overlay-text">Loading device information...</div>
             </div>
             <div class="settings-section">
-                <strong>Information <i class="material-icons sync-icon" onclick="requestInfoSection()">sync</i></strong>
+                <strong>
+                    Information
+                    <button class="btn-icon" style="width: 28px; height: 28px; border-color: #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" onclick="requestInfoSection()" type="button" title="Sync Information"><i id="syncInfoIcon" class="material-icons" style="font-size: 16px;">sync</i></button>
+                </strong>
                 <div class="settings-list">
                     <div class="field">
                         <div class="field-label">Name</div>
-                        <div class="item"><span class="value editable" id="infoNameInput" contenteditable="false"></span><i class="material-icons tick-icon" onclick="sendCurrentSetting()">check</i></div>
+                        <div class="item">
+                            <span class="value field-editable" id="infoNameInput"></span>
+                            <i class="material-icons edit-icon" onclick="openEditParamModal('Name', 'SYSID', document.getElementById('infoNameInput').textContent, 'infoNameInput')" title="Edit Name">edit</i>
+                        </div>
                     </div>
                     <div class="field">
                         <div class="field-label">Pubkey</div>
@@ -1001,11 +1228,17 @@
                     </div>
                     <div class="field">
                         <div class="field-label">Network key</div>
-                        <div class="item"><span class="value editable" id="infoNetworkKeyInput" contenteditable="false"></span><i class="material-icons tick-icon" onclick="sendCurrentSetting()">check</i></div>
+                        <div class="item">
+                            <span class="value field-editable" id="infoNetworkKeyInput"></span>
+                            <i class="material-icons edit-icon" onclick="openEditParamModal('Network Key', 'NWKKEY', document.getElementById('infoNetworkKeyInput').textContent, 'infoNetworkKeyInput')" title="Edit Network Key">edit</i>
+                        </div>
                     </div>
                     <div class="field">
                         <div class="field-label">Channel</div>
-                        <div class="item"><span class="value editable" id="infoChannelInput" contenteditable="false"></span><i class="material-icons tick-icon" onclick="sendCurrentSetting()">check</i></div>
+                        <div class="item">
+                            <span class="value field-editable" id="infoChannelInput"></span>
+                            <i class="material-icons edit-icon" onclick="openEditParamModal('Channel', 'LRCH', document.getElementById('infoChannelInput').textContent, 'infoChannelInput')" title="Edit Channel">edit</i>
+                        </div>
                     </div>
                     <div class="field">
                         <div class="field-label">Contacts</div>
@@ -1015,19 +1248,31 @@
             </div>
 
             <div class="settings-section">
-                <strong>LoRa <i class="material-icons sync-icon" onclick="requestLoRaSection()">sync</i></strong>
+                <strong>
+                    LoRa
+                    <button class="btn-icon" style="width: 28px; height: 28px; border-color: #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" onclick="requestLoRaSection()" type="button" title="Sync LoRa Info"><i id="syncLoRaIcon" class="material-icons" style="font-size: 16px;">sync</i></button>
+                </strong>
                 <div class="settings-list">
                     <div class="field">
                         <div class="field-label">Frequency</div>
-                        <div class="item"><span class="value editable" id="loraFreqInput" contenteditable="false"></span><i class="material-icons tick-icon" onclick="sendCurrentSetting()">check</i></div>
+                        <div class="item">
+                            <span class="value field-editable" id="loraFreqInput"></span>
+                            <i class="material-icons edit-icon" onclick="openEditParamModal('Frequency', 'LRFQ', document.getElementById('loraFreqInput').textContent, 'loraFreqInput')" title="Edit Frequency">edit</i>
+                        </div>
                     </div>
                     <div class="field">
                         <div class="field-label">Bandwidth</div>
-                        <div class="item"><span class="value editable" id="loraBWInput" contenteditable="false"></span><i class="material-icons tick-icon" onclick="sendCurrentSetting()">check</i></div>
+                        <div class="item">
+                            <span class="value field-editable" id="loraBWInput"></span>
+                            <i class="material-icons edit-icon" onclick="openEditParamModal('Bandwidth', 'LRBW', document.getElementById('loraBWInput').textContent, 'loraBWInput')" title="Edit Bandwidth">edit</i>
+                        </div>
                     </div>
                     <div class="field">
                         <div class="field-label">Spreading factor</div>
-                        <div class="item"><span class="value editable" id="loraSFInput" contenteditable="false"></span><i class="material-icons tick-icon" onclick="sendCurrentSetting()">check</i></div>
+                        <div class="item">
+                            <span class="value field-editable" id="loraSFInput"></span>
+                            <i class="material-icons edit-icon" onclick="openEditParamModal('Spreading Factor', 'LRSF', document.getElementById('loraSFInput').textContent, 'loraSFInput')" title="Edit Spreading Factor">edit</i>
+                        </div>
                     </div>
                     <div class="field">
                         <div class="field-label">Coding rate</div>
@@ -1035,17 +1280,26 @@
                     </div>
                     <div class="field">
                         <div class="field-label">TX Power</div>
-                        <div class="item"><span class="value editable" id="loraTXInput" contenteditable="false"></span><i class="material-icons tick-icon" onclick="sendCurrentSetting()">check</i></div>
+                        <div class="item">
+                            <span class="value field-editable" id="loraTXInput"></span>
+                            <i class="material-icons edit-icon" onclick="openEditParamModal('TX Power', 'LRTXP', document.getElementById('loraTXInput').textContent, 'loraTXInput')" title="Edit TX Power">edit</i>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="settings-section">
-                <strong>GPS <i class="material-icons sync-icon" onclick="requestGPSSection()">sync</i></strong>
+                <strong>
+                    GPS
+                    <button class="btn-icon" style="width: 28px; height: 28px; border-color: #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" onclick="requestGPSSection()" type="button" title="Sync GPS Info"><i id="syncGPSIcon" class="material-icons" style="font-size: 16px;">sync</i></button>
+                </strong>
                 <div class="settings-list">
                     <div class="field">
                         <div class="field-label">Status</div>
-                        <div class="item"><span class="value editable" id="gpsStatusSelect" contenteditable="false"></span><i class="material-icons tick-icon" onclick="sendCurrentSetting()">check</i></div>
+                        <div class="item">
+                            <span class="value field-editable" id="gpsStatusSelect"></span>
+                            <i class="material-icons edit-icon" onclick="openEditParamModal('GPS Status', 'GPSEN', document.getElementById('gpsStatusSelect').textContent, 'gpsStatusSelect')" title="Edit GPS Status">edit</i>
+                        </div>
                     </div>
                     <div class="field">
                         <div class="field-label">Latitude</div>
@@ -1059,7 +1313,10 @@
             </div>
 
             <div class="settings-section">
-                <strong>Telemetry <i class="material-icons sync-icon" onclick="requestTelemetrySection()">sync</i></strong>
+                <strong>
+                    Telemetry
+                    <button class="btn-icon" style="width: 28px; height: 28px; border-color: #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" onclick="requestTelemetrySection()" type="button" title="Sync Telemetry Info"><i id="syncTelemetryIcon" class="material-icons" style="font-size: 16px;">sync</i></button>
+                </strong>
                 <div class="settings-list">
                     <div class="field">
                         <div class="field-label">Battery</div>
@@ -1134,7 +1391,10 @@
     <div id="contactInfo" class="screen hidden">
         <div class="settings-root">
             <div class="settings-section" id="contactInfoSection">
-                <strong>Contact Info <i class="material-icons sync-icon" onclick="requestContactInfoSection()">sync</i></strong>
+                <strong>
+                    Contact Info
+                    <button class="btn-icon" style="width: 28px; height: 28px; border-color: #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" onclick="requestContactInfoSection()" type="button" title="Sync Contact Info"><i id="syncContactInfoIcon" class="material-icons" style="font-size: 16px;">sync</i></button>
+                </strong>
                 <div id="contactInfoLoading" class="contacts-overlay hidden" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: rgba(255,255,255,0.95); z-index: 10; border-radius: 8px;">
                     <div class="spinner" aria-hidden="true"></div>
                     <div class="overlay-text">Loading contact info...</div>
@@ -1174,7 +1434,10 @@
                     </div>
                     <div class="field">
                         <div class="field-label">Out Path</div>
-                        <div class="item"><span class="value editable" id="ciOutPath" contenteditable="false">—</span><i class="material-icons tick-icon" onclick="sendCurrentSetting()">check</i></div>
+                        <div class="item field-editable">
+                            <span class="value" id="ciOutPath">—</span>
+                            <i class="material-icons edit-icon" onclick="openEditParamModal('Out Path', 'CONWPATH', document.getElementById('ciOutPath').textContent, 'ciOutPath')" title="Edit Out Path">edit</i>
+                        </div>
                     </div>
                     <div class="field">
                         <div class="field-label">Last Advert</div>
@@ -1193,6 +1456,20 @@
         </div>
     </div>
 
+    <!-- Success Notification -->
+    <div id="successNotification" class="success-notification hidden">
+        <div class="success-content">
+            <div class="success-header">
+                <i class="material-icons" aria-hidden="true">check_circle</i>
+                <span class="success-title">Success</span>
+                <button class="success-close" type="button" onclick="closeSuccessNotification()" aria-label="Close">
+                    <i class="material-icons" aria-hidden="true">close</i>
+                </button>
+            </div>
+            <div class="success-message" id="successMessage">Operation created successfully</div>
+        </div>
+    </div>
+
     <!-- Error Notification -->
     <div id="errorNotification" class="error-notification hidden">
         <div class="error-content">
@@ -1204,6 +1481,30 @@
                 </button>
             </div>
             <div class="error-message" id="errorMessage">An error occurred</div>
+        </div>
+    </div>
+
+    <!-- Edit Parameter Modal -->
+    <div id="editParamModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="editParamTitle">Edit Parameter</h2>
+                <button class="modal-close" type="button" onclick="closeEditParamModal()" aria-label="Close">
+                    <i class="material-icons">close</i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-field">
+                    <label id="editParamLabel">Value:</label>
+                    <input type="text" id="editParamInput" placeholder="Enter new value" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeEditParamModal()">Cancel</button>
+                <button class="btn-primary" id="submitEditBtn" onclick="submitEditParam()">
+                    <i class="material-icons">check</i> Send
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1462,10 +1763,8 @@
             }
         };
         let collectingGpsInfo = false;
-        let currentEditingField = null;
         let lastCommandResponse = null;      // Track last command response for timeout mechanism
         let lastCommandResponseTime = null;  // Track when last response arrived
-        let pendingSetting = null;
         let activeKey = null;
         let incomingBuffer = '';
         let incomingIdleTimer = null;  // 300ms silence → flush buffer
@@ -1491,6 +1790,10 @@
         let coninfQueue = [];
         let coninfFetching = false;
         let coninfBulkDebounceTimer = null;
+
+        // ── Edit Parameter Modal State ─────────────────────────────────────────
+        let editingParam = null;  // { name, command, currentValue, field }
+        let isEditSubmitting = false;
 
         /**
          * Convert error code to human-readable error message
@@ -1560,6 +1863,37 @@
             }
         }
 
+        let successNotificationTimer = null;
+
+        function showSuccessNotification(message) {
+            const notification = document.getElementById('successNotification');
+            const successMessage = document.getElementById('successMessage');
+
+            if (successNotificationTimer) {
+                clearTimeout(successNotificationTimer);
+            }
+
+            successMessage.textContent = message;
+            notification.classList.remove('hidden', 'closing');
+
+            successNotificationTimer = setTimeout(() => {
+                closeSuccessNotification();
+            }, 5000);
+        }
+
+        function closeSuccessNotification() {
+            const notification = document.getElementById('successNotification');
+            if (successNotificationTimer) {
+                clearTimeout(successNotificationTimer);
+                successNotificationTimer = null;
+            }
+            notification.classList.add('closing');
+            setTimeout(() => {
+                notification.classList.add('hidden');
+                notification.classList.remove('closing');
+            }, 280);
+        }
+
         let errorNotificationTimer = null;
 
         /**
@@ -1611,6 +1945,197 @@
                 notification.classList.remove('closing');
             }, 300);
         }
+
+        /**
+         * Open edit parameter modal
+         * @param {string} paramName - Display name of parameter (e.g., "System ID")
+         * @param {string} command - AT command (e.g., "SYSID")
+         * @param {string} currentValue - Current value to display
+         * @param {string} fieldId - ID of field to update after submission
+         */
+        function openEditParamModal(paramName, command, currentValue, fieldId) {
+            editingParam = {
+                name: paramName,
+                command: command,
+                currentValue: currentValue,
+                field: fieldId
+            };
+            
+            document.getElementById('editParamTitle').textContent = `Edit ${paramName}`;
+            document.getElementById('editParamLabel').textContent = `${paramName}:`;
+            document.getElementById('editParamInput').value = '';
+            document.getElementById('editParamInput').placeholder = `Current: ${currentValue}`;
+            document.getElementById('editParamInput').disabled = false;
+            document.getElementById('submitEditBtn').disabled = false;
+            document.getElementById('submitEditBtn').innerHTML = '<i class="material-icons">check</i> Send';
+            
+            document.getElementById('editParamModal').classList.remove('hidden');
+            document.getElementById('editParamInput').focus();
+        }
+
+        /**
+         * Close edit parameter modal
+         */
+        function closeEditParamModal() {
+            document.getElementById('editParamModal').classList.add('hidden');
+            editingParam = null;
+            isEditSubmitting = false;
+        }
+
+        /**
+         * Submit edited parameter value
+         */
+        async function submitEditParam() {
+            if (!editingParam || isEditSubmitting) return;
+            
+            const newValue = document.getElementById('editParamInput').value.trim();
+            if (!newValue) {
+                showErrorNotification('Please enter a value');
+                return;
+            }
+            
+            const paramName = editingParam.name;
+            const paramCommand = editingParam.command;
+            const paramField = editingParam.field;
+            const paramOriginalValue = editingParam.currentValue;
+
+            // VALIDATION PHASE
+            let isValid = true;
+            let errorMessage = "";
+
+            if (paramCommand === 'LRCH') {
+                const ch = parseInt(newValue, 10);
+                if (isNaN(ch) || ch < 0 || ch > 6) {
+                    isValid = false;
+                    errorMessage = "Channel must be an integer between 0 and 6.";
+                }
+            } else if (paramCommand === 'LRFQ') {
+                const freq = parseFloat(newValue);
+                if (isNaN(freq) || freq < 920.0 || freq > 923.0) {
+                    // Update this according to actual region settings if needed
+                    isValid = false;
+                    errorMessage = "Frequency must be between 920.0 and 923.0 MHz.";
+                }
+            } else if (paramCommand === 'LRSF') {
+                const sf = parseInt(newValue, 10);
+                if (isNaN(sf) || sf < 6 || sf > 12) {
+                    isValid = false;
+                    errorMessage = "Spreading Factor must be an integer between 6 and 12.";
+                }
+            } else if (paramCommand === 'LRBW') {
+                const bw = parseFloat(newValue);
+                const valid_bws = [7.8, 10.4, 15.6, 20.8, 31.25, 41.7, 62.5, 125.0, 250.0, 500.0];
+                if (isNaN(bw) || !valid_bws.includes(bw)) {
+                    isValid = false;
+                    errorMessage = "Bandwidth must be one of: 7.8, 10.4, 15.6, 20.8, 31.25, 41.7, 62.5, 125.0, 250.0, 500.0";
+                }
+            } else if (paramCommand === 'LRTXP') {
+                const txp = parseInt(newValue, 10);
+                // if (isNaN(txp) || txp > 25) {
+                //     isValid = false;
+                //     // errorMessage = "TX Power cannot exceed 25 dBm.";
+                // }
+            }
+
+            if (!isValid) {
+                showErrorNotification(errorMessage);
+                return;
+            }
+
+            isEditSubmitting = true;
+            document.getElementById('submitEditBtn').disabled = true;
+            document.getElementById('submitEditBtn').innerHTML = '<div class="spinner-small"></div> Sending...';
+
+            try {
+                // Determine format based on command
+                let atCommand = `AT+${paramCommand}=${newValue}\r\n`;
+                if (paramCommand === 'CONWPATH' || paramCommand === 'CONRPATH') {
+                    if (!currentContactInfoPrefix) throw new Error('Missing contact prefix');
+                    atCommand = `AT+${paramCommand}=${currentContactInfoPrefix},${newValue}\r\n`;
+                }
+
+                console.log('[EDIT] Sending:', atCommand);
+
+                if (!charTX || !isBleConnected()) {
+                    throw new Error('Not connected to device');
+                }
+
+                // Show waiting state in field
+                const fieldEl = document.getElementById(paramField);
+                const itemEl = fieldEl ? fieldEl.parentElement : null;
+                const statusEl = itemEl ? itemEl.querySelector('.field-status') : null;
+
+                if (statusEl) {
+                    statusEl.innerHTML = '<div class="spinner-small"></div> Waiting...';
+                } else if (fieldEl) {
+                    fieldEl.innerHTML = '<div class="spinner-small"></div> Waiting...';
+                }
+
+                lastCommandResponse = null;
+                lastCommandResponseTime = null;
+                let errorResponse = null;
+                const cmdStart = Date.now();
+
+                const confirmFn = () => {
+                    if (lastCommandResponseTime && lastCommandResponseTime > cmdStart) {
+                        if (lastCommandResponse.includes('ERROR')) {
+                            errorResponse = lastCommandResponse;
+                            return true; // stop retry loop
+                        } else {
+                            // Any non-error response is considered success (e.g. "OK" or "+CONWPATH:1")
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+
+                // Send command with retry
+                await sendATWithRetry(atCommand, confirmFn, 3, 2000);
+
+                if (errorResponse) {
+                    throw new Error(formatErrorMessage(errorResponse));
+                }
+                
+                // If it timed out but didn't return an error, we treat it as success per user request
+
+                // Wait a moment for device to process internally
+                await new Promise(r => setTimeout(r, 500));
+
+                // Determine which section to refresh
+                const section = getSectionForType(paramCommand);
+                console.log(`[EDIT] Syncing ${section} section after successful edit`);
+
+                // For info section changes that affect routing (Network Key, Channel), sync both
+                if (paramCommand === 'NWKKEY' || paramCommand === 'LRCH') {
+                    requestInfoSection();
+                    setTimeout(() => requestLoRaSection(), 400);
+                } else {
+                    if (section === 'info') requestInfoSection();
+                    else if (section === 'lora') requestLoRaSection();
+                    else if (section === 'gps') requestGPSSection();
+                    else if (section === 'contactInfo') requestContactInfoSection();
+                }
+
+                closeEditParamModal();
+                showSuccessNotification(`${paramName} updated successfully.`);
+
+            } catch (e) {
+                console.error('[EDIT] Error:', e);
+                showErrorNotification(`Error updating ${paramName}: ${e.message}`);
+
+                // Restore field to previous value
+                const fieldEl = document.getElementById(paramField);
+                if (fieldEl) {
+                    fieldEl.textContent = paramOriginalValue;
+                }
+            } finally {
+                isEditSubmitting = false;
+                document.getElementById('submitEditBtn').disabled = false;
+                document.getElementById('submitEditBtn').innerHTML = '<i class="material-icons">check</i> Send';
+            }
+        }
+
+        // --- UI State & Navigation ---
 
         function setStatus(connected, statusText) {
             const dot = document.getElementById('dot');
@@ -2213,79 +2738,18 @@
                 return;
             }
 
-            // Handle setting responses (OK / ERROR) — unified for all editable fields
-            if (trimmed === 'OK' && pendingSetting) {
-                const item = pendingSetting.el.parentElement;
-                const el   = pendingSetting.el;
-                const savedType = pendingSetting.type;
-                pendingSetting = null;              // clear early so CONINF/other handlers aren't blocked
-                item.classList.add('success');
-                const tickIcon = item.querySelector('.tick-icon');
-                tickIcon.textContent = 'check';
-                tickIcon.style.color = '#4CAF50';  // green
-                setTimeout(() => {
-                    item.classList.remove('success');
-                    tickIcon.classList.remove('visible');
-                    el.contentEditable = 'false';
-                    el.blur();
-                    currentEditingField = null;
-                }, 1000);
-                // Post-success side-effects per command type
-                if (savedType === 'NWKKEY') {
-                    // Re-sync info (to show updated key + channel) then LoRa section
-                    setTimeout(async () => {
-                        await requestInfoSection();
-                        await requestLoRaSection();
-                    }, 400);
-                }
-                if (savedType === 'LRCH') {
-                    // Re-sync info (to show updated channel) then LoRa section
-                    setTimeout(async () => {
-                        await requestInfoSection();
-                        await requestLoRaSection();
-                    }, 400);
-                }
-                if (savedType === 'CONWPATH') {
-                    // Re-fetch contact info to show the new path
-                    setTimeout(() => requestContactInfoSection(), 400);
-                }
-                return;
-            }
-
-            if (trimmed === 'ERROR' && pendingSetting) {
-                const item = pendingSetting.el.parentElement;
-                const el   = pendingSetting.el;
-                const savedType = pendingSetting.type;
-                pendingSetting = null;
-                item.classList.add('error');
-                const tickIcon = item.querySelector('.tick-icon');
-                tickIcon.textContent = 'close';
-                tickIcon.style.color = '#f44336';  // red
-                el.textContent = el.dataset.originalValue;
-                // Re-sync the affected section after a short delay
-                setTimeout(() => {
-                    const section = getSectionForType(savedType);
-                    if (section === 'info') requestInfoSection();
-                    else if (section === 'lora') requestLoRaSection();
-                    else if (section === 'gps') requestGPSSection();
-                    else if (section === 'contactInfo') requestContactInfoSection();
-                }, 100);
-                setTimeout(() => {
-                    item.classList.remove('error');
-                    tickIcon.classList.remove('visible');
-                    el.contentEditable = 'false';
-                    el.blur();
-                    currentEditingField = null;
-                }, 1000);
-                return;
-            }
-
             // Handle sync section ERROR
             if (trimmed === 'ERROR' && currentSyncSection) {
                 const sectionIndex = currentSyncSection === 'info' ? 0 : currentSyncSection === 'lora' ? 1 : currentSyncSection === 'gps' ? 2 : 3;
                 const section = document.querySelectorAll('.settings-section')[sectionIndex];
                 section.classList.remove('syncing');
                 section.classList.add('error');
+
+                if (currentSyncSection === 'info') document.getElementById('syncInfoIcon')?.classList.remove('spin-anim');
+                if (currentSyncSection === 'lora') document.getElementById('syncLoRaIcon')?.classList.remove('spin-anim');
+                if (currentSyncSection === 'gps') document.getElementById('syncGPSIcon')?.classList.remove('spin-anim');
+                if (currentSyncSection === 'telemetry') document.getElementById('syncTelemetryIcon')?.classList.remove('spin-anim');
+
                 setTimeout(() => section.classList.remove('error'), 1000);
                 currentSyncSection = null;
                 return;
@@ -2618,16 +3082,15 @@
                 const prefix = pubkeyPrefix(activeKey);
                 const outgoing = `${val}@${prefix}\r\n`;
                 
-                // Use command queue to ensure ordered delivery
+                // Hiển thị tin nhắn gửi đi lên màn hình NGAY LẬP TỨC (trước khi gửi xuống thiết bị)
+                addMessage(val, "me", activeKey);
+                input.value = "";
+                
+                // Sau đó mới gửi xuống thiết bị không chặn luồng hiển thị
                 await commandQueue.enqueue(outgoing, {
-                    timeout: 5000,
-                    onResponse: (response) => {
-                        // Response is handled by handleIncomingLine
-                        addMessage(val, "me", activeKey);
-                    }
+                    timeout: 5000
                 });
                 
-                input.value = "";
             } catch (err) {
                 addMessage("Send error: " + err, "sys", SYSTEM_KEY);
             }
@@ -2757,6 +3220,12 @@
             const sec = document.querySelectorAll('.settings-section')[sectionIndex];
             sec.classList.remove('syncing');
             sec.classList.add('success');
+            
+            if (section === 'info') document.getElementById('syncInfoIcon')?.classList.remove('spin-anim');
+            if (section === 'lora') document.getElementById('syncLoRaIcon')?.classList.remove('spin-anim');
+            if (section === 'gps') document.getElementById('syncGPSIcon')?.classList.remove('spin-anim');
+            if (section === 'telemetry') document.getElementById('syncTelemetryIcon')?.classList.remove('spin-anim');
+
             setTimeout(() => sec.classList.remove('success'), 1000);
             currentSyncSection = null;
         }
@@ -2825,6 +3294,13 @@
             }
             console.log('[CONINF] requestContactInfoSection called for prefix:', currentContactInfoPrefix);
             isContactInfoSyncing = true;
+            document.getElementById('syncContactInfoIcon')?.classList.add('spin-anim');
+
+            const sec = document.getElementById('contactInfoSection');
+            if (sec) {
+                sec.classList.add('syncing');
+            }
+
             const loadingEl = document.getElementById('contactInfoLoading');
             if (loadingEl) loadingEl.classList.remove('hidden');
             // Remove stale cache so sendATWithRetry waits for a fresh response
@@ -2837,6 +3313,19 @@
 
         function flashGreenContactInfo() {
             isContactInfoSyncing = false;
+            
+            // Apply similar logic to current normal sections settings
+            const sec = document.getElementById('contactInfoSection');
+            if (sec) {
+                sec.classList.remove('syncing');
+                sec.classList.add('success');
+                setTimeout(() => sec.classList.remove('success'), 1000);
+            }
+            
+            const icon = document.getElementById('syncContactInfoIcon');
+            if (icon) {
+                icon.classList.remove('spin-anim');
+            }
             const loadingEl = document.getElementById('contactInfoLoading');
             if (loadingEl) loadingEl.classList.add('hidden');
         }
@@ -3114,6 +3603,7 @@
                     document.getElementById('ciLastMod').textContent = '—';
                     document.getElementById('ciGPS').textContent = '—';
                     isContactInfoSyncing = false;
+                    document.getElementById('syncContactInfoIcon')?.classList.remove('spin-anim');
                     continue;
                 }
 
@@ -3141,44 +3631,10 @@
             document.getElementById('ciSNR').textContent = d.snr || ph;
             document.getElementById('ciRoute').textContent = d.route || ph;
             document.getElementById('ciHops').textContent = d.hops || ph;
-            const outPathEl = document.getElementById('ciOutPath');
-            if (outPathEl && outPathEl.contentEditable !== 'true') {
-                outPathEl.textContent = d.outPath || ph;
-            }
+            document.getElementById('ciOutPath').textContent = d.outPath || ph;
             document.getElementById('ciLastAdvert').textContent = d.lastAdvert || ph;
             document.getElementById('ciLastMod').textContent = d.lastMod || ph;
             document.getElementById('ciGPS').textContent = d.gps || ph;
-
-            // Set up OutPath click-to-edit — byte-for-byte same handler body as populateSettings editable fields
-            if (outPathEl) {
-                const el = outPathEl;
-                const item = el.parentElement;
-                const tickIcon = item.querySelector('.tick-icon');
-                el.onclick = () => {
-                    if (currentEditingField && currentEditingField !== el) {
-                        currentEditingField.contentEditable = 'false';
-                        currentEditingField.parentElement.querySelector('.tick-icon').classList.remove('visible');
-                    }
-                    el.dataset.originalValue = el.textContent.trim();
-                    el.contentEditable = 'true';
-                    el.focus();
-                    currentEditingField = el;
-                    // Check if changed
-                    if (el.textContent.trim() !== el.dataset.originalValue) {
-                        tickIcon.classList.add('visible');
-                    } else {
-                        tickIcon.classList.remove('visible');
-                    }
-                    // Add input listener
-                    el.oninput = () => {
-                        if (el.textContent.trim() !== el.dataset.originalValue) {
-                            tickIcon.classList.add('visible');
-                        } else {
-                            tickIcon.classList.remove('visible');
-                        }
-                    };
-                };
-            }
         }
 
         async function shareContact(c) {
@@ -3252,6 +3708,7 @@
             const timeoutId = setTimeout(() => {
                 if (loadingOverlay && isLoadingDeviceInfo) loadingOverlay.classList.add('hidden');
                 document.querySelectorAll('.settings-section').forEach(sec => sec.classList.remove('syncing'));
+                ['syncInfoIcon', 'syncLoRaIcon', 'syncGPSIcon', 'syncTelemetryIcon'].forEach(id => document.getElementById(id)?.classList.remove('spin-anim'));
                 isLoadingDeviceInfo = false;
                 console.warn('Device info loading timeout - showing cached data');
             }, 15000);
@@ -3272,6 +3729,7 @@
                 if (document.getElementById('settings').classList.contains('hidden') === false) {
                     if (loadingOverlay) loadingOverlay.classList.add('hidden');
                     document.querySelectorAll('.settings-section').forEach(sec => sec.classList.remove('syncing'));
+                    ['syncInfoIcon', 'syncLoRaIcon', 'syncGPSIcon', 'syncTelemetryIcon'].forEach(id => document.getElementById(id)?.classList.remove('spin-anim'));
                 }
                 isLoadingDeviceInfo = false;
             }
@@ -3280,6 +3738,7 @@
         async function requestInfoSection() {
             if (!charTX) return;
             currentSyncSection = 'info';
+            document.getElementById('syncInfoIcon')?.classList.add('spin-anim');
             document.querySelector('.settings-section:nth-child(1)').classList.add('syncing');
             const commands = [
                 "AT+SYSID?\r\n",
@@ -3302,6 +3761,7 @@
         async function requestLoRaSection() {
             if (!charTX) return;
             currentSyncSection = 'lora';
+            document.getElementById('syncLoRaIcon')?.classList.add('spin-anim');
             document.querySelector('.settings-section:nth-child(2)').classList.add('syncing');
             try {
                 await commandQueue.enqueue("AT+LRCFG?\r\n", { timeout: 3000 });
@@ -3315,6 +3775,7 @@
         async function requestGPSSection() {
             if (!charTX) return;
             currentSyncSection = 'gps';
+            document.getElementById('syncGPSIcon')?.classList.add('spin-anim');
             document.querySelector('.settings-section:nth-child(3)').classList.add('syncing');
             const commands = [
                 "AT+GPSEN?\r\n",
@@ -3334,6 +3795,7 @@
         async function requestTelemetrySection() {
             if (!charTX) return;
             currentSyncSection = 'telemetry';
+            document.getElementById('syncTelemetryIcon')?.classList.add('spin-anim');
             document.querySelector('.settings-section:nth-child(4)').classList.add('syncing');
             try {
                 await commandQueue.enqueue("AT+SYSSTATUS?\r\n", { timeout: 3000 });
@@ -3386,97 +3848,6 @@
                 appendTerminalMessage('Error: ' + e.message, 'error');
             }
         }
-
-        async function sendCurrentSetting() {
-            if (!currentEditingField) return;
-            const el = document.getElementById(currentEditingField.id);
-            const value = el.textContent.trim();
-            let type = '';
-            switch (currentEditingField.id) {
-                case 'infoNameInput':       type = 'SYSID';    break;
-                case 'infoNetworkKeyInput': type = 'NWKKEY';   break;
-                case 'infoChannelInput':    type = 'LRCH';     break;
-                case 'ciOutPath':           type = 'CONWPATH'; break;
-                case 'loraFreqInput':       type = 'LRFQ';     break;
-                case 'loraSFInput':         type = 'LRSF';     break;
-                case 'loraBWInput':         type = 'LRBW';     break;
-                case 'loraTXInput':         type = 'LRTXP';    break;
-                case 'gpsStatusSelect':     type = 'GPSEN';    break;
-            }
-            if (type) {
-                const tickIcon = el.parentElement.querySelector('.tick-icon');
-                tickIcon.textContent = 'hourglass_empty'; // spinner
-                tickIcon.style.color = '#ffa500'; // orange
-                pendingSetting = { type, el };
-                await sendSetting(type, value);
-            }
-        }
-
-        async function sendSetting(type, value) {
-            if (!charTX || !isBleConnected()) {
-                addMessage("Not connected. Cannot send setting.", "sys", SYSTEM_KEY);
-                return;
-            }
-
-            let command = '';
-            switch (type) {
-                case 'SYSID':
-                    command = `AT+SYSID=${value}\r\n`;
-                    break;
-                case 'NWKKEY':
-                    command = `AT+NWKKEY=${value}\r\n`;
-                    break;
-                case 'LRCH':
-                    command = `AT+LRCH=${value}\r\n`;
-                    break;
-                case 'LRFQ':
-                    command = `AT+LRFQ=${value}\r\n`;
-                    break;
-                case 'LRSF':
-                    command = `AT+LRSF=${value}\r\n`;
-                    break;
-                case 'LRBW':
-                    command = `AT+LRBW=${value}\r\n`;
-                    break;
-                case 'LRTXP':
-                    command = `AT+LRTXP=${value}\r\n`;
-                    break;
-                case 'GPSEN':
-                    command = `AT+GPSEN=${value}\r\n`;
-                    break;
-                case 'CONWPATH':
-                    command = `AT+CONWPATH=${currentContactInfoPrefix},${value}\r\n`;
-                    break;
-                default:
-                    addMessage(`Unknown setting type: ${type}`, "sys", SYSTEM_KEY);
-                    return;
-            }
-
-            try {
-                await commandQueue.enqueue(command, { timeout: 3000 });
-                addMessage(`Sent: ${command.trim()}`, "sys", SYSTEM_KEY);
-            } catch (e) {
-                addMessage(`Error sending ${type}: ${e.message}`, "sys", SYSTEM_KEY);
-                // Mirror the device ERROR path so the UI resets cleanly
-                if (pendingSetting) {
-                    const item = pendingSetting.el.parentElement;
-                    const el   = pendingSetting.el;
-                    pendingSetting = null;
-                    item.classList.add('error');
-                    const tickIcon = item.querySelector('.tick-icon');
-                    tickIcon.textContent = 'close';
-                    tickIcon.style.color = '#f44336';
-                    el.textContent = el.dataset.originalValue !== undefined ? el.dataset.originalValue : el.textContent;
-                    setTimeout(() => {
-                        item.classList.remove('error');
-                        tickIcon.classList.remove('visible');
-                        el.contentEditable = 'false';
-                        el.blur();
-                        currentEditingField = null;
-                    }, 1000);
-                }
-            }
-        }
         
         function populateSettings() {
             document.getElementById('infoNameInput').textContent = deviceInfo.deviceName || '';
@@ -3519,38 +3890,6 @@
             document.getElementById('telemetryBattery').textContent = deviceInfo.telemetry.battery || '0%';
             document.getElementById('telemetryNoise').textContent = deviceInfo.telemetry.noise || '0';
             // Time ticks live via startTelemetryClock()
-
-            // Add click listeners for editable fields
-            const editableIds = ['infoNameInput', 'infoNetworkKeyInput', 'infoChannelInput', 'loraFreqInput', 'loraSFInput', 'loraBWInput', 'loraTXInput', 'gpsStatusSelect'];
-            editableIds.forEach(id => {
-                const el = document.getElementById(id);
-                const item = el.parentElement;
-                const tickIcon = item.querySelector('.tick-icon');
-                el.onclick = () => {
-                    if (currentEditingField && currentEditingField !== el) {
-                        currentEditingField.contentEditable = 'false';
-                        currentEditingField.parentElement.querySelector('.tick-icon').classList.remove('visible');
-                    }
-                    el.dataset.originalValue = el.textContent.trim();
-                    el.contentEditable = 'true';
-                    el.focus();
-                    currentEditingField = el;
-                    // Check if changed
-                    if (el.textContent.trim() !== el.dataset.originalValue) {
-                        tickIcon.classList.add('visible');
-                    } else {
-                        tickIcon.classList.remove('visible');
-                    }
-                    // Add input listener
-                    el.oninput = () => {
-                        if (el.textContent.trim() !== el.dataset.originalValue) {
-                            tickIcon.classList.add('visible');
-                        } else {
-                            tickIcon.classList.remove('visible');
-                        }
-                    };
-                };
-            });
         }
 
         async function showSettings(skipReload = false) {
@@ -3717,7 +4056,7 @@
             'AT+WARN=', 'AT+WARN?', 'AT+WARNEND', 'AT+WARNCFG=', 'AT+WARNCFG?'
         ];
 
-        // Close popups and exit any active editing field (settings OR contact info) on outside click
+        // Close popups on outside click
         document.addEventListener('click', (e) => {
             document.querySelectorAll('.contact-menu-popup').forEach(p => p.remove());
             document.querySelectorAll('.contact-menu-btn.active').forEach(b => b.classList.remove('active'));
@@ -3725,15 +4064,6 @@
             document.querySelectorAll('.add-contact-popup').forEach(p => {
                 if (!p.contains(e.target)) p.remove();
             });
-            if (currentEditingField
-                && !currentEditingField.contains(e.target)
-                && !e.target.classList.contains('tick-icon')) {
-                currentEditingField.contentEditable = 'false';
-                const prevTick = currentEditingField.parentElement
-                    ? currentEditingField.parentElement.querySelector('.tick-icon') : null;
-                if (prevTick) prevTick.classList.remove('visible');
-                currentEditingField = null;
-            }
         });
 
         // Init
