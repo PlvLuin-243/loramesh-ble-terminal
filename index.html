@@ -3107,22 +3107,33 @@
             }
         });
 
-        document.getElementById('at-input').addEventListener('input', () => {
-            const val = document.getElementById('at-input').value;
-            const ac  = document.getElementById('atAutocomplete');
-            const query = val.toUpperCase();
-            if (!query) { ac.classList.add('hidden'); ac.innerHTML = ''; return; }
-            // Sort: startsWith first, then other includes
-            const exact   = AT_COMMANDS.filter(c => c.toUpperCase().startsWith(query));
-            const partial = AT_COMMANDS.filter(c => !c.toUpperCase().startsWith(query) && c.toUpperCase().includes(query));
-            const matches = [...exact, ...partial].slice(0, 20); // cap at 20
-            if (matches.length === 0) { ac.classList.add('hidden'); ac.innerHTML = ''; return; }
+        function updateAutocomplete(inputId, acId) {
+            const inputEl = document.getElementById(inputId);
+            const ac = document.getElementById(acId);
+            const query = inputEl.value.toUpperCase();
+            
+            let matches = [];
+            if (!query) {
+                // If empty, show first 20 commands or maybe just AT+
+                matches = AT_COMMANDS.slice(0, 50);
+            } else {
+                const exact   = AT_COMMANDS.filter(c => c.toUpperCase().startsWith(query));
+                const partial = AT_COMMANDS.filter(c => !c.toUpperCase().startsWith(query) && c.toUpperCase().includes(query));
+                matches = [...exact, ...partial].slice(0, 50); 
+            }
+            
+            if (matches.length === 0) {
+                ac.classList.add('hidden'); 
+                ac.innerHTML = ''; 
+                return; 
+            }
+            
             ac.innerHTML = '';
             for (const cmd of matches) {
                 const item = document.createElement('div');
                 item.className = 'at-autocomplete-item';
-                const idx = cmd.toUpperCase().indexOf(query);
-                if (idx >= 0) {
+                const idx = query ? cmd.toUpperCase().indexOf(query) : -1;
+                if (idx >= 0 && query) {
                     item.innerHTML = escapeHtml(cmd.slice(0, idx))
                         + '<strong>' + escapeHtml(cmd.slice(idx, idx + query.length)) + '</strong>'
                         + escapeHtml(cmd.slice(idx + query.length));
@@ -3131,15 +3142,18 @@
                 }
                 item.addEventListener('mousedown', (e) => {
                     e.preventDefault(); // keep input focused
-                    document.getElementById('at-input').value = cmd;
-                    document.getElementById('at-input').focus();
+                    inputEl.value = cmd;
+                    inputEl.focus();
                     ac.classList.add('hidden');
                     ac.innerHTML = '';
                 });
                 ac.appendChild(item);
             }
             ac.classList.remove('hidden');
-        });
+        }
+
+        document.getElementById('at-input').addEventListener('input', () => updateAutocomplete('at-input', 'atAutocomplete'));
+        document.getElementById('at-input').addEventListener('focus', () => updateAutocomplete('at-input', 'atAutocomplete'));
 
         document.getElementById('at-input').addEventListener('blur', () => {
             setTimeout(() => {
@@ -3161,39 +3175,8 @@
             }
         });
 
-        document.getElementById('terminal-input').addEventListener('input', () => {
-            const val = document.getElementById('terminal-input').value;
-            const ac  = document.getElementById('terminalAutocomplete');
-            const query = val.toUpperCase();
-            if (!query) { ac.classList.add('hidden'); ac.innerHTML = ''; return; }
-            // Sort: startsWith first, then other includes
-            const exact   = AT_COMMANDS.filter(c => c.toUpperCase().startsWith(query));
-            const partial = AT_COMMANDS.filter(c => !c.toUpperCase().startsWith(query) && c.toUpperCase().includes(query));
-            const matches = [...exact, ...partial].slice(0, 20); // cap at 20
-            if (matches.length === 0) { ac.classList.add('hidden'); ac.innerHTML = ''; return; }
-            ac.innerHTML = '';
-            for (const cmd of matches) {
-                const item = document.createElement('div');
-                item.className = 'at-autocomplete-item';
-                const idx = cmd.toUpperCase().indexOf(query);
-                if (idx >= 0) {
-                    item.innerHTML = escapeHtml(cmd.slice(0, idx))
-                        + '<strong>' + escapeHtml(cmd.slice(idx, idx + query.length)) + '</strong>'
-                        + escapeHtml(cmd.slice(idx + query.length));
-                } else {
-                    item.textContent = cmd;
-                }
-                item.addEventListener('mousedown', (e) => {
-                    e.preventDefault(); // keep input focused
-                    document.getElementById('terminal-input').value = cmd;
-                    document.getElementById('terminal-input').focus();
-                    ac.classList.add('hidden');
-                    ac.innerHTML = '';
-                });
-                ac.appendChild(item);
-            }
-            ac.classList.remove('hidden');
-        });
+        document.getElementById('terminal-input').addEventListener('input', () => updateAutocomplete('terminal-input', 'terminalAutocomplete'));
+        document.getElementById('terminal-input').addEventListener('focus', () => updateAutocomplete('terminal-input', 'terminalAutocomplete'));
 
         document.getElementById('terminal-input').addEventListener('blur', () => {
             setTimeout(() => {
@@ -4044,15 +4027,21 @@
 
         // ── AT command list (used by autocomplete dropdown) ──────────────────
         const AT_COMMANDS = [
+            // --- System ---
             'AT+SYSINFO?', 'AT+SYSHELP?', 'AT+SYSPUBK?', 'AT+SYSID=', 'AT+SYSID?',
             'AT+SYSRST', 'AT+SYSBAT?', 'AT+SYSSTATUS?', 'AT+SYSBLE=', 'AT+SYSBLE?',
-            'AT+SYSBLNM=', 'AT+SYSLGD?', 'AT+SYSLGE?', 'AT+SYSLGA?', 'AT+SYSTIME?',
+            'AT+SYSBLNM=', 'AT+SYSLGD?', 'AT+SYSLGE?', 'AT+SYSLGA?', 'AT+SYSLGO?', 
+            'AT+SYSWTIME?', 'AT+SYSTIME?', 'AT+SYSWKU?',
+            // --- Radio ---
             'AT+LRCH=', 'AT+LRCH?', 'AT+LRFQ=', 'AT+LRSF=', 'AT+LRBW=', 'AT+LRTXP=',
+            'AT+LRCFG=', 'AT+LRCFG?', 'AT+LRADV=', 'AT+LRSEND=',
+            'AT+NWKKEY=', 'AT+NWKKEY?', 'AT+LRCRD=', 'AT+LRCRD?', 'AT+ACLLST?',
+            // --- Contact ---
             'AT+CONLST?', 'AT+CONINF=', 'AT+CONADD=', 'AT+CONDEL=', 'AT+CONSHR=',
             'AT+CONWPATH=', 'AT+CONRPATH=',
-            'AT+LRCFG=', 'AT+LRCFG?', 'AT+LRADV=', 'AT+LRSEND=',
-            'AT+NWKKEY=', 'AT+NWKKEY?', 'AT+LRCRD', 'AT+LRCRD?',
-            'AT+ACLLST?', 'AT+GPSINF?', 'AT+GPSEN=', 'AT+GPSRST', 'AT+GPSCFG=', 'AT+GPSEN?', 'AT+GPSCFG?',
+            // --- GPS ---
+            'AT+GPSINF?', 'AT+GPSEN=', 'AT+GPSEN?', 'AT+GPSRST', 'AT+GPSCFG=', 'AT+GPSCFG?', 'AT+GPSSYNC',
+            // --- Warn ---
             'AT+WARN=', 'AT+WARN?', 'AT+WARNEND', 'AT+WARNCFG=', 'AT+WARNCFG?'
         ];
 
