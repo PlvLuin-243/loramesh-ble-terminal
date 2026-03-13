@@ -1330,6 +1330,14 @@
                         <div class="field-label">Time</div>
                         <div class="item"><div class="value" id="telemetryTime">N/A</div></div>
                     </div>
+                    <div class="field">
+                        <div class="field-label">RST Time</div>
+                        <div class="item"><div class="value" id="telemetryRstTime">N/A</div></div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Warn Last Time</div>
+                        <div class="item"><div class="value" id="telemetryWarnLastTime">N/A</div></div>
+                    </div>
                 </div>
             </div>
 
@@ -1450,6 +1458,35 @@
                     <div class="field">
                         <div class="field-label">GPS</div>
                         <div class="item"><div class="value" id="ciGPS">—</div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-section" id="contactTelemetrySection">
+                <strong>
+                    Telemetry
+                    <button class="btn-icon" style="width: 28px; height: 28px; border-color: #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" onclick="requestContactTelemetry()" type="button" title="Sync Contact Telemetry"><i id="syncContactTelemetryIcon" class="material-icons" style="font-size: 16px;">sync</i></button>
+                </strong>
+                <div class="settings-list">
+                    <div class="field">
+                        <div class="field-label">Battery</div>
+                        <div class="item"><div class="value" id="cTelBattery">—</div></div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Noise</div>
+                        <div class="item"><div class="value" id="cTelNoise">—</div></div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Time</div>
+                        <div class="item"><div class="value" id="cTelTime">—</div></div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">RST Time</div>
+                        <div class="item"><div class="value" id="cTelRstTime">—</div></div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Warn Last Time</div>
+                        <div class="item"><div class="value" id="cTelWarnLastTime">—</div></div>
                     </div>
                 </div>
             </div>
@@ -1759,7 +1796,9 @@
             telemetry: {
                 battery: '',
                 noise: '',
-                time: ''
+                time: '',
+                rstTime: '',
+                warnLastTime: ''
             }
         };
         let collectingGpsInfo = false;
@@ -2442,6 +2481,7 @@
                 const subParts = [formatPubkey(c.pubkey)];
                 if (c.route) subParts.push(c.route);
                 if (c.rssi)  subParts.push(c.rssi);
+                if (c.bat)   subParts.push(c.bat);
                 const main = document.createElement('div');
                 main.className = 'contact-main';
                 main.innerHTML = `
@@ -2546,6 +2586,64 @@
                     
                     let messageType = 'esp'; // Default to received (green, left)
                     
+                    // Xử lý báo lỗi Telemetry Sync ở Contact Info (CMS ERROR 700)
+                    if (isSendError700 && currentContactInfoPrefix === incomingPrefix) {
+                        const sec = document.getElementById('contactTelemetrySection');
+                        if (sec && sec.classList.contains('syncing')) {
+                            sec.classList.remove('syncing');
+                            sec.classList.add('error');
+                            setTimeout(() => sec.classList.remove('error'), 1000);
+                            document.getElementById('syncContactTelemetryIcon')?.classList.remove('spin-anim');
+                            showErrorNotification(`Telemetry Sync Error: LoRa send timeout`);
+                        }
+                    }
+
+                    // Check if this is a SYSSTATUS coming from contact
+                    if (messageText.startsWith('+SYSSTATUS:')) {
+                        const val = messageText.slice('+SYSSTATUS:'.length).trim();
+                        const parts = val.split(',');
+                        if (parts.length >= 7) {
+                            const cObj = contacts.get(routeKey);
+                            if (cObj) {
+                                cObj.bat = parts[1].trim() + '%';
+                                cObj.rstTime = parts[2].trim();
+                                cObj.warnLastTime = parts[3].trim();
+                                cObj.noise = parts[6].trim();
+                                const unixTs = parseInt(parts[0]);
+                                if (!isNaN(unixTs) && unixTs > 0) {
+                                    const d = new Date(unixTs * 1000);
+                                    cObj.time = d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+                                } else {
+                                    cObj.time = 'N/A';
+                                }
+                                contacts.set(routeKey, cObj);
+                                
+                                // Update main UI list to reflect BAT changes
+                                renderContacts();
+
+                                // Update contact info modal immediately if it's currently showing this contact
+                                if (currentContactInfoPrefix === incomingPrefix) {
+                                    const cTelBattery = document.getElementById('cTelBattery');
+                                    if (cTelBattery) {
+                                        cTelBattery.textContent = cObj.bat;
+                                        document.getElementById('cTelNoise').textContent = cObj.noise;
+                                        document.getElementById('cTelTime').textContent = cObj.time;
+                                        document.getElementById('cTelRstTime').textContent = formatTimeFromTick(cObj.rstTime);
+                                        document.getElementById('cTelWarnLastTime').textContent = formatTimeFromTick(cObj.warnLastTime);
+                                        
+                                        const sec = document.getElementById('contactTelemetrySection');
+                                        if (sec) {
+                                            sec.classList.remove('syncing');
+                                            sec.classList.add('success');
+                                            setTimeout(() => sec.classList.remove('success'), 1000);
+                                        }
+                                        document.getElementById('syncContactTelemetryIcon')?.classList.remove('spin-anim');
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     // Determine message type based on error type
                     if (isSendError700) {
                         // LoRa send timeout - display on right but in red to indicate send error
@@ -2678,6 +2776,8 @@
                 const parts = value.split(',');
                 if (parts.length >= 7) {
                     deviceInfo.telemetry.battery = parts[1].trim() + '%';
+                    deviceInfo.telemetry.rstTime = parts[2].trim();
+                    deviceInfo.telemetry.warnLastTime = parts[3].trim();
                     deviceInfo.telemetry.noise = parts[6].trim();
                     const unixTs = parseInt(parts[0]);
                     if (!isNaN(unixTs) && unixTs > 0) startTelemetryClock(unixTs);
@@ -2738,8 +2838,8 @@
                 return;
             }
 
-            // Handle sync section ERROR
-            if (trimmed === 'ERROR' && currentSyncSection) {
+            // Handle sync section ERROR (including CMS ERROR 700)
+            if ((trimmed === 'ERROR' || /^\+CMS\s+ERROR:\s*700/.test(trimmed)) && currentSyncSection) {
                 const sectionIndex = currentSyncSection === 'info' ? 0 : currentSyncSection === 'lora' ? 1 : currentSyncSection === 'gps' ? 2 : 3;
                 const section = document.querySelectorAll('.settings-section')[sectionIndex];
                 section.classList.remove('syncing');
@@ -2749,6 +2849,12 @@
                 if (currentSyncSection === 'lora') document.getElementById('syncLoRaIcon')?.classList.remove('spin-anim');
                 if (currentSyncSection === 'gps') document.getElementById('syncGPSIcon')?.classList.remove('spin-anim');
                 if (currentSyncSection === 'telemetry') document.getElementById('syncTelemetryIcon')?.classList.remove('spin-anim');
+
+                // Show error message for error 700
+                if (/^\+CMS\s+ERROR:\s*700/.test(trimmed)) {
+                    showErrorNotification('Telemetry Error 700: LoRa send timeout');
+                    addMessage('Telemetry Error 700: LoRa send timeout', 'sys', SYSTEM_KEY);
+                }
 
                 setTimeout(() => section.classList.remove('error'), 1000);
                 currentSyncSection = null;
@@ -3213,6 +3319,21 @@
             currentSyncSection = null;
         }
 
+        function formatTimeFromTick(tickValue) {
+            // Giá trị từ phần cứng cấu hình là Unix timestamp (giây),
+            // chỉ cần chuyển timestamp về giờ UTC+7 (Asia/Ho_Chi_Minh)
+            if (!tickValue || isNaN(tickValue)) return 'N/A';
+            
+            const unixTs = parseInt(tickValue);
+            if (unixTs <= 0) return 'N/A';
+            
+            // Khởi tạo Date object (nhân 1000 vì js dùng mili-giây)
+            const date = new Date(unixTs * 1000);
+            
+            // Format với locale VN và múi giờ Việt Nam
+            return date.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+        }
+
         function startTelemetryClock(unixTimestamp) {
             telemetryBaseTime = unixTimestamp;
             telemetryReceivedAt = Date.now();
@@ -3268,6 +3389,28 @@
             document.getElementById('headerTitle').textContent = c.name || 'Contact Info';
             populateContactInfo();
             if (charTX && isBleConnected()) requestContactInfoSection();
+        }
+
+        async function requestContactTelemetry() {
+            if (!charTX || !currentContactInfoPrefix) return;
+            
+            const sec = document.getElementById('contactTelemetrySection');
+            if (sec) sec.classList.add('syncing');
+            document.getElementById('syncContactTelemetryIcon')?.classList.add('spin-anim');
+            
+            try {
+                // Gửi lệnh xuống device lấy sysstatus của contact
+                const cmd = `AT+SYSSTATUS?@${currentContactInfoPrefix}\r\n`;
+                await commandQueue.enqueue(cmd, { timeout: 5000 });
+            } catch (err) {
+                if (sec) {
+                    sec.classList.remove('syncing');
+                    sec.classList.add('error');
+                    setTimeout(() => sec.classList.remove('error'), 1000);
+                }
+                document.getElementById('syncContactTelemetryIcon')?.classList.remove('spin-anim');
+                addMessage("Sync Error: " + err, "sys", SYSTEM_KEY);
+            }
         }
 
         async function requestContactInfoSection() {
@@ -3618,6 +3761,23 @@
             document.getElementById('ciLastAdvert').textContent = d.lastAdvert || ph;
             document.getElementById('ciLastMod').textContent = d.lastMod || ph;
             document.getElementById('ciGPS').textContent = d.gps || ph;
+            
+            // Render basic telemetry from contact obj if available
+            const routeKey = contactKeyByPrefix(d.pubKeyPrefix);
+            const cObj = contacts.get(routeKey);
+            if (cObj) {
+                document.getElementById('cTelBattery').textContent = cObj.bat || '—';
+                document.getElementById('cTelNoise').textContent = cObj.noise || '—';
+                document.getElementById('cTelTime').textContent = cObj.time || '—';
+                document.getElementById('cTelRstTime').textContent = formatTimeFromTick(cObj.rstTime) || '—';
+                document.getElementById('cTelWarnLastTime').textContent = formatTimeFromTick(cObj.warnLastTime) || '—';
+            } else {
+                document.getElementById('cTelBattery').textContent = '—';
+                document.getElementById('cTelNoise').textContent = '—';
+                document.getElementById('cTelTime').textContent = '—';
+                document.getElementById('cTelRstTime').textContent = '—';
+                document.getElementById('cTelWarnLastTime').textContent = '—';
+            }
         }
 
         async function shareContact(c) {
@@ -3872,6 +4032,8 @@
             // Telemetry
             document.getElementById('telemetryBattery').textContent = deviceInfo.telemetry.battery || '0%';
             document.getElementById('telemetryNoise').textContent = deviceInfo.telemetry.noise || '0';
+            document.getElementById('telemetryRstTime').textContent = formatTimeFromTick(deviceInfo.telemetry.rstTime) || 'N/A';
+            document.getElementById('telemetryWarnLastTime').textContent = formatTimeFromTick(deviceInfo.telemetry.warnLastTime) || 'N/A';
             // Time ticks live via startTelemetryClock()
         }
 
