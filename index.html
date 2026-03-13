@@ -7,6 +7,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 
     <style>
         :root {
@@ -404,6 +405,91 @@
         .overlay-text {
             font-size: 13px;
             line-height: 1.4;
+        }
+
+        .bottom-nav {
+            display: flex;
+            background: #fff;
+            border-top: 2px solid #ccc;
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .bottom-nav .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 0;
+            color: #888;
+            cursor: pointer;
+            transition: color 0.2s, background 0.2s;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .bottom-nav .nav-item:not(:last-child) {
+            border-right: 2px solid #ccc;
+        }
+
+        .bottom-nav .nav-item:active { background: rgba(0,0,0,0.05); }
+
+        .bottom-nav .nav-item.active { color: var(--header); }
+
+        .bottom-nav .nav-item i {
+            font-size: 24px;
+            margin-bottom: 2px;
+        }
+
+        .bottom-nav .nav-item span {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .map-label {
+            background: rgba(255, 255, 255, 0.85);
+            border: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #333;
+            padding: 2px 6px;
+        }
+        .leaflet-tooltip-left.map-label::before,
+        .leaflet-tooltip-right.map-label::before {
+            display: none;
+        }
+
+        .custom-map-icon {
+            background: transparent;
+            border: none;
+        }
+
+        .map-sync-btn {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            z-index: 1000;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--header);
+            transition: transform 0.1s, background 0.1s;
+        }
+        .map-sync-btn:active {
+            transform: scale(0.95);
+            background: #f5f5f5;
+        }
+        .map-sync-btn i {
+            font-size: 24px;
         }
 
         .contact-list {
@@ -1185,21 +1271,41 @@
         </div>
     </header>
 
-    <!-- Screen 1: Contacts -->
+    <!-- Screen 1: Contacts & Map Tabs -->
     <div id="contacts" class="screen">
-        <div id="contactsOverlay" class="contacts-overlay hidden" aria-live="polite">
-            <div class="spinner" aria-hidden="true"></div>
-            <div id="contactsOverlayText" class="overlay-text">Waiting for contacts...</div>
+        <div id="contactsTabContent" style="display:flex; flex-direction:column; flex:1; min-height:0; position:relative;">
+            <div id="contactsOverlay" class="contacts-overlay hidden" aria-live="polite">
+                <div class="spinner" aria-hidden="true"></div>
+                <div id="contactsOverlayText" class="overlay-text">Waiting for contacts...</div>
+            </div>
+
+            <div class="contacts-top">
+                <div class="search" role="search">
+                    <i class="material-icons" aria-hidden="true">search</i>
+                    <input id="contactSearch" type="text" placeholder="Search contact..." autocomplete="off" spellcheck="false" />
+                </div>
+            </div>
+            <div id="contactList" class="contact-list" role="list"></div>
+            <div id="emptyContacts" class="empty hidden">No contacts yet.</div>
         </div>
 
-        <div class="contacts-top">
-            <div class="search" role="search">
-                <i class="material-icons" aria-hidden="true">search</i>
-                <input id="contactSearch" type="text" placeholder="Search contact..." autocomplete="off" spellcheck="false" />
+        <div id="mapTabContent" class="hidden" style="flex:1; min-height:0; position:relative;">
+            <div id="map" style="width: 100%; height: 100%;"></div>
+            <button class="map-sync-btn" onclick="syncMapLocations()" title="Sync Locations">
+                <i id="mapSyncBtnIcon" class="material-icons">sync</i>
+            </button>
+        </div>
+
+        <div class="bottom-nav">
+            <div id="navTabContacts" class="nav-item active" onclick="switchMainTab('contacts')">
+                <i class="material-icons">format_list_bulleted</i>
+                <span>CONTACT LIST</span>
+            </div>
+            <div id="navTabMap" class="nav-item" onclick="switchMainTab('map')">
+                <i class="material-icons">map</i>
+                <span>MAP</span>
             </div>
         </div>
-        <div id="contactList" class="contact-list" role="list"></div>
-        <div id="emptyContacts" class="empty hidden">No contacts yet.</div>
     </div>
 
     <!-- Screen 3: Device Info / Settings -->
@@ -1459,6 +1565,10 @@
                         <div class="field-label">GPS</div>
                         <div class="item"><div class="value" id="ciGPS">—</div></div>
                     </div>
+                    <div class="field">
+                        <div class="field-label">Distance</div>
+                        <div class="item"><div class="value" id="ciDistance">—</div></div>
+                    </div>
                 </div>
             </div>
 
@@ -1545,6 +1655,7 @@
         </div>
     </div>
 
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script>
         const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
         const TX_UUID      = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // Web Write -> ESP RX
@@ -2220,6 +2331,119 @@
 
             // If we're connected but still haven't received any contacts, keep showing the spinner.
             setContactsLoading(_conn && contacts.size === 0, 'Waiting for contacts...');
+        }
+
+        let worldMap = null;
+        let mapMarkers = [];
+
+        function refreshMapMarkers() {
+            if (!worldMap) return;
+
+            // Clear old markers
+            mapMarkers.forEach(m => worldMap.removeLayer(m));
+            mapMarkers = [];
+
+            let bounds = L.latLngBounds();
+            let hasValidMarkers = false;
+
+            // 1. Device Info (Red Marker)
+            if (deviceInfo && deviceInfo.gpsInfo) {
+                const latMatch = deviceInfo.gpsInfo.match(/Latitude\s*:\s*(-?\d+(?:\.\d+)?)/i);
+                const lonMatch = deviceInfo.gpsInfo.match(/Longitude\s*:\s*(-?\d+(?:\.\d+)?)/i);
+                
+                if (latMatch && lonMatch) {
+                    const lat = parseFloat(latMatch[1]);
+                    const lon = parseFloat(lonMatch[1]);
+                    
+                    if (!isNaN(lat) && !isNaN(lon) && (lat !== 0 || lon !== 0)) {
+                        const redIcon = L.divIcon({
+                            html: '<i class="material-icons" style="color: #e74c3c; font-size: 36px; text-shadow: 1px 1px 3px rgba(0,0,0,0.4);">location_on</i>',
+                            className: 'custom-map-icon',
+                            iconSize: [36, 36],
+                            iconAnchor: [18, 36]
+                        });
+                        const marker = L.marker([lat, lon], { icon: redIcon }).addTo(worldMap);
+                        
+                        const labelName = deviceInfo.deviceName || 'My Device';
+                        marker.bindTooltip(labelName, { permanent: true, direction: 'right', className: 'map-label', offset: [0, -18] });
+                        
+                        mapMarkers.push(marker);
+                        bounds.extend([lat, lon]);
+                        hasValidMarkers = true;
+                    }
+                }
+            }
+
+            // 2. Contacts (Blue Marker)
+            if (typeof contacts !== 'undefined') {
+                for (const [pk, c] of contacts) {
+                    if (c.gps && c.gps !== 'N/A') {
+                        // try to match two numbers (floats or integers) anywhere in the gps string
+                        const matches = c.gps.match(/(-?\d+(?:\.\d+)?)[^\d-]+(-?\d+(?:\.\d+)?)/);
+                        if (matches && matches.length >= 3) {
+                            const lat = parseFloat(matches[1]);
+                            const lon = parseFloat(matches[2]);
+                            
+                            if (!isNaN(lat) && !isNaN(lon) && (lat !== 0 || lon !== 0)) {
+                                const blueIcon = L.divIcon({
+                                    html: '<i class="material-icons" style="color: #3498db; font-size: 36px; text-shadow: 1px 1px 3px rgba(0,0,0,0.4);">location_on</i>',
+                                    className: 'custom-map-icon',
+                                    iconSize: [36, 36],
+                                    iconAnchor: [18, 36]
+                                });
+                                const marker = L.marker([lat, lon], { icon: blueIcon }).addTo(worldMap);
+                                
+                                const labelName = c.name || 'Unknown';
+                                marker.bindTooltip(labelName, { permanent: true, direction: 'right', className: 'map-label', offset: [0, -18] });
+                                
+                                mapMarkers.push(marker);
+                                bounds.extend([lat, lon]);
+                                hasValidMarkers = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Zoom to fit all markers if any exist
+            if (hasValidMarkers) {
+                worldMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+            }
+        }
+
+        async function syncMapLocations() {
+            return runFullSync();
+        }
+
+        function switchMainTab(tab) {
+            const contactsTab = document.getElementById('contactsTabContent');
+            const mapTab = document.getElementById('mapTabContent');
+            const navContacts = document.getElementById('navTabContacts');
+            const navMap = document.getElementById('navTabMap');
+            
+            if (tab === 'contacts') {
+                contactsTab.classList.remove('hidden');
+                mapTab.classList.add('hidden');
+                navContacts.classList.add('active');
+                navMap.classList.remove('active');
+            } else {
+                contactsTab.classList.add('hidden');
+                mapTab.classList.remove('hidden');
+                navContacts.classList.remove('active');
+                navMap.classList.add('active');
+                
+                if (!worldMap) {
+                    // Initialize Leaflet map
+                    worldMap = L.map('map').setView([10.762622, 106.660172], 13); // Default to HCMC
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '&copy; OpenStreetMap contributors'
+                    }).addTo(worldMap);
+                } else {
+                    worldMap.invalidateSize();
+                }
+
+                refreshMapMarkers();
+            }
         }
 
         function showChat(key) {
@@ -3293,15 +3517,11 @@
         });
 
         async function requestDeviceInfo() {
-            console.log("[CMD] requestDeviceInfo called");
             if (!charTX || !isBleConnected()) {
                 console.log("[CMD] Cannot request - charTX:", !!charTX, "connected:", isBleConnected());
                 return;
             }
-            // Only request contact list on startup
-            console.log("[CMD] Sending AT+CONLST? with retries");
-            await sendATWithRetry('AT+CONLST?\r\n',    () => Boolean(deviceInfo.contactsCount),     3, 1000);
-            console.log("[CMD] requestDeviceInfo completed");
+            await runFullSync();
         }
 
         function flashGreen(section) {
@@ -3317,6 +3537,31 @@
 
             setTimeout(() => sec.classList.remove('success'), 1000);
             currentSyncSection = null;
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) return null;
+            if (lat1 === 0 && lon1 === 0) return null; // consider 0,0 invalid
+            if (lat2 === 0 && lon2 === 0) return null;
+            
+            const R = 6371e3; // Earth's radius in meters
+            const phi1 = lat1 * Math.PI / 180;
+            const phi2 = lat2 * Math.PI / 180;
+            const deltaPhi = (lat2 - lat1) * Math.PI / 180;
+            const deltaLambda = (lon2 - lon1) * Math.PI / 180;
+
+            const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+                      Math.cos(phi1) * Math.cos(phi2) *
+                      Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+            return R * c; // in meters
+        }
+
+        function formatDistance(meters) {
+            if (meters === null) return 'N/A';
+            if (meters < 1000) return Math.round(meters) + ' m';
+            return (meters / 1000).toFixed(2) + ' km';
         }
 
         function formatTimeFromTick(tickValue) {
@@ -3762,6 +4007,33 @@
             document.getElementById('ciLastMod').textContent = d.lastMod || ph;
             document.getElementById('ciGPS').textContent = d.gps || ph;
             
+            // Calculate Distance
+            let distanceStr = 'N/A';
+            if (d.gps && d.gps !== '0.000000,0.000000' && d.gps !== 'N/A' && d.gps !== ph) {
+                const [cLatStr, cLonStr] = d.gps.split(',');
+                const cLat = parseFloat(cLatStr);
+                const cLon = parseFloat(cLonStr);
+                
+                let devLat = null;
+                let devLon = null;
+                
+                // Get device coordinates
+                if (deviceInfo.gpsInfo) {
+                    const latMatch = deviceInfo.gpsInfo.match(/Latitude\s*:\s*([^\r\n]+)/);
+                    const lonMatch = deviceInfo.gpsInfo.match(/Longitude\s*:\s*([^\r\n]+)/);
+                    if (latMatch && lonMatch) {
+                        devLat = parseFloat(latMatch[1]);
+                        devLon = parseFloat(lonMatch[1]);
+                    }
+                }
+                
+                if (devLat !== null && devLon !== null && !isNaN(cLat) && !isNaN(cLon)) {
+                    const dist = calculateDistance(devLat, devLon, cLat, cLon);
+                    distanceStr = formatDistance(dist);
+                }
+            }
+            document.getElementById('ciDistance').textContent = distanceStr;
+            
             // Render basic telemetry from contact obj if available
             const routeKey = contactKeyByPrefix(d.pubKeyPrefix);
             const cObj = contacts.get(routeKey);
@@ -4078,35 +4350,68 @@
 
         // ── Header: sync contact list ─────────────────────────────────────────
         async function syncContactList() {
-            if (!charTX || !isBleConnected()) return;
-            const icon = document.getElementById('syncContactsIcon');
-            const btn  = document.getElementById('syncContactsBtn');
-            if (btn)  btn.disabled = true;
-            if (icon) icon.classList.add('spin-anim');
+            return runFullSync();
+        }
+
+        async function runFullSync() {
+            if (!charTX || !isBleConnected()) {
+                addMessage("Not connected to device.", "sys", SYSTEM_KEY);
+                return;
+            }
+
+            const btnSyncIcon = document.getElementById('syncContactsIcon');
+            const btnMapIcon = document.getElementById('mapSyncBtnIcon');
+            const btnSyncNode = document.getElementById('syncContactsBtn');
+            const btnMapNode = document.querySelector('.map-sync-btn');
             
-            // Clear existing contacts and set loading state
+            if (btnSyncIcon) btnSyncIcon.classList.add('spin-anim');
+            if (btnMapIcon) btnMapIcon.classList.add('spin-anim');
+            if (btnSyncNode) btnSyncNode.disabled = true;
+            if (btnMapNode) btnMapNode.disabled = true;
+
             contacts.clear();
             contactOrderCounter = 0;
-            setContactsLoading(true, 'Syncing contacts...');
-            console.log('[DEBUG] syncContactList: cleared contacts and set loading');
-            
+            setContactsLoading(true, 'Syncing details...');
+
             try {
-                console.log('[DEBUG] syncContactList: sending AT+CONLST?');
-                await charTX.writeValue(new TextEncoder().encode('AT+CONLST?\r\n'));
+                // 1. Sync Contact List
+                await commandQueue.enqueue("AT+CONLST?\r\n", { timeout: 4000, retries: 2 });
+                await new Promise(r => setTimeout(r, 200));
+
+                // 2. Sync Device GPS
+                await commandQueue.enqueue("AT+GPSINF?\r\n", { timeout: 3000, retries: 1 });
+
+                // 3. Sync Contacts GPS and Info
+                const allPrefixes = Array.from(contacts.keys()).map(pk => pubkeyPrefix(pk)).filter(Boolean);
+                allPrefixes.forEach(p => contactInfoCache.delete(p));
+                coninfQueue = [...new Set([...allPrefixes, ...coninfQueue])];
+                if (!coninfFetching) processConinfQueue();
+
+                let attempts = 0;
+                const checkDone = setInterval(() => {
+                    attempts++;
+                    // Assume done if queue is empty or timeout (60 * 500ms = 30s)
+                    if ((coninfQueue.length === 0 && !coninfFetching) || attempts > 60) {
+                        clearInterval(checkDone);
+                        if (btnSyncIcon) btnSyncIcon.classList.remove('spin-anim');
+                        if (btnMapIcon) btnMapIcon.classList.remove('spin-anim');
+                        if (btnSyncNode) btnSyncNode.disabled = false;
+                        if (btnMapNode) btnMapNode.disabled = false;
+                        
+                        if (contacts.size === 0) setContactsLoading(false);
+                        renderContacts(); // ensure UI is refreshed
+                        refreshMapMarkers();
+                    }
+                }, 500);
+
             } catch (e) {
-                console.error('syncContactList error:', e);
+                console.error("Full sync error:", e);
+                if (btnSyncIcon) btnSyncIcon.classList.remove('spin-anim');
+                if (btnMapIcon) btnMapIcon.classList.remove('spin-anim');
+                if (btnSyncNode) btnSyncNode.disabled = false;
+                if (btnMapNode) btnMapNode.disabled = false;
                 setContactsLoading(false);
             }
-            
-            // Wait 3 seconds for responses, then stop loading
-            setTimeout(() => {
-                if (btn)  btn.disabled = false;
-                if (icon) icon.classList.remove('spin-anim');
-                console.log('[DEBUG] syncContactList: timeout reached, final contacts.size=' + contacts.size);
-                if (contacts.size === 0) {
-                    setContactsLoading(false);
-                }
-            }, 3000);
         }
 
         // ── Header: advert popup ──────────────────────────────────────────
