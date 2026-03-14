@@ -2608,6 +2608,8 @@
 
         let worldMap = null;
         let mapMarkers = [];
+        let mapPolylines = [];  // Track polylines from device to contacts
+        let mapHopMarkers = []; // Track unknown-hop markers ("???")
 
         function refreshMapMarkers() {
             if (!worldMap) return;
@@ -2615,6 +2617,14 @@
             // Clear old markers
             mapMarkers.forEach(m => worldMap.removeLayer(m));
             mapMarkers = [];
+            
+            // Clear old polylines
+            mapPolylines.forEach(p => worldMap.removeLayer(p));
+            mapPolylines = [];
+
+            // Clear old unknown-hop markers
+            mapHopMarkers.forEach(m => worldMap.removeLayer(m));
+            mapHopMarkers = [];
 
             let bounds = L.latLngBounds();
             let hasValidMarkers = false;
@@ -2639,6 +2649,18 @@
                     mapMarkers.push(marker);
                     bounds.extend([lat, lon]);
                     hasValidMarkers = true;
+                }
+            }
+
+            // Get device coordinates for drawing lines
+            let devLat = null;
+            let devLon = null;
+            if (deviceInfo && deviceInfo.gpsLat && deviceInfo.gpsLon && deviceInfo.gpsLat !== 'N/A' && deviceInfo.gpsLon !== 'N/A') {
+                devLat = parseFloat(deviceInfo.gpsLat);
+                devLon = parseFloat(deviceInfo.gpsLon);
+                if (isNaN(devLat) || isNaN(devLon)) {
+                    devLat = null;
+                    devLon = null;
                 }
             }
 
@@ -2667,6 +2689,96 @@
                                 mapMarkers.push(marker);
                                 bounds.extend([lat, lon]);
                                 hasValidMarkers = true;
+                                
+                                // Draw route path based on hop and outPath
+                                if (devLat !== null && devLon !== null) {
+                                    const pathPoints = [[devLat, devLon]]; // Start from device
+                                    const unknownIntermediates = []; // Track unknown hop prefixes
+
+                                    const info = contactInfoCache.get(pubkeyPrefix(pk)) || {};
+                                    
+                                    // Parse hop and outPath to build the path
+                                    const hop = parseInt((c.hops ?? info.hops ?? '').toString().trim(), 10) || 0;
+                                    const outPathRaw = (c.outPath ?? info.outPath ?? '').toString().trim();
+                                    const outPath = /^(unknown|\(unknown\)|zero-hop|\(zero-hop\)|n\/a)$/i.test(outPathRaw)
+                                        ? ''
+                                        : outPathRaw;
+                                    
+                                    // Build intermediate waypoints based on hop
+                                    if (hop > 0 && outPath) {
+                                        // For each hop level, get 2 characters from outPath and find matching contact
+                                        for (let h = 0; h < hop; h++) {
+                                            const startIdx = h * 2;
+                                            const endIdx = startIdx + 2;
+                                            const prefix = outPath.substring(startIdx, endIdx).toLowerCase();
+                                            
+                                            if (prefix.length === 2) {
+                                                // Find contact with matching pubkey prefix
+                                                let foundIntermediate = false;
+                                                for (const [contactPk, contactData] of contacts) {
+                                                    const contactPrefix = pubkeyPrefix(contactPk).toLowerCase();
+                                                    if (contactPrefix && contactPrefix.startsWith(prefix) && contactData.gps && contactData.gps !== 'N/A') {
+                                                        const gpsMatches = contactData.gps.match(/(-?\d+(?:\.\d+)?)[^\d-]+(-?\d+(?:\.\d+)?)/);
+                                                        if (gpsMatches && gpsMatches.length >= 3) {
+                                                            const intermediateLat = parseFloat(gpsMatches[1]);
+                                                            const intermediateLon = parseFloat(gpsMatches[2]);
+                                                            if (!isNaN(intermediateLat) && !isNaN(intermediateLon) && (intermediateLat !== 0 || intermediateLon !== 0)) {
+                                                                pathPoints.push([intermediateLat, intermediateLon]);
+                                                                foundIntermediate = true;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                if (!foundIntermediate) {
+                                                    // Track unknown intermediate for "???" marker
+                                                    unknownIntermediates.push(h);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Add final destination
+                                    pathPoints.push([lat, lon]);
+                                    
+                                    // Draw polyline from device through intermediates to contact
+                                    const polyline = L.polyline(pathPoints, {
+                                        color: '#000000',
+                                        weight: 2,
+                                        opacity: 0.6,
+                                        dashArray: '5, 5',
+                                        lineCap: 'round',
+                                        lineJoin: 'round'
+                                    }).addTo(worldMap);
+                                    mapPolylines.push(polyline);
+                                    
+                                    // If there are unknown intermediates, add markers showing "???" in middle of route
+                                    if (unknownIntermediates.length > 0) {
+                                        for (let idx of unknownIntermediates) {
+                                            // Calculate midpoint along the route for "???" marker
+                                            const numSegments = pathPoints.length - 1;
+                                            if (numSegments > 0 && idx < numSegments) {
+                                                const startPt = pathPoints[idx];
+                                                const endPt = pathPoints[idx + 1];
+                                                const midLat = (startPt[0] + endPt[0]) / 2;
+                                                const midLon = (startPt[1] + endPt[1]) / 2;
+                                                
+                                                // Add "???" popup marker at midpoint
+                                                const unknownHopMarker = L.circleMarker([midLat, midLon], {
+                                                    radius: 6,
+                                                    fillColor: '#FF9800',
+                                                    color: '#FF6F00',
+                                                    weight: 2,
+                                                    opacity: 1,
+                                                    fillOpacity: 0.8
+                                                }).bindPopup('??? (Unknown intermediate hop)', { autoClose: false })
+                                                  .bindTooltip('Unknown intermediate', { direction: 'right' })
+                                                  .addTo(worldMap);
+                                                mapHopMarkers.push(unknownHopMarker);
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -2973,7 +3085,26 @@
                 const subParts = [formatPubkey(c.pubkey)];
                 if (c.route) subParts.push(c.route);
                 if (c.rssi)  subParts.push(c.rssi);
-                if (c.bat)   subParts.push(c.bat);
+                if (c.snr)   subParts.push(c.snr);
+                
+                // Calculate distance if both device and contact have GPS
+                let distStr = '';
+                if (c.gps && c.gps !== 'N/A' && deviceInfo && deviceInfo.gpsLat && deviceInfo.gpsLon && 
+                    deviceInfo.gpsLat !== 'N/A' && deviceInfo.gpsLon !== 'N/A') {
+                    const gpsParts = c.gps.split(',');
+                    if (gpsParts.length >= 2) {
+                        const cLat = parseFloat(gpsParts[0]);
+                        const cLon = parseFloat(gpsParts[1]);
+                        const devLat = parseFloat(deviceInfo.gpsLat);
+                        const devLon = parseFloat(deviceInfo.gpsLon);
+                        if (!isNaN(cLat) && !isNaN(cLon) && !isNaN(devLat) && !isNaN(devLon)) {
+                            const dist = calculateDistance(devLat, devLon, cLat, cLon);
+                            distStr = formatDistance(dist);
+                        }
+                    }
+                }
+                if (distStr) subParts.push(distStr);
+                subParts.push(c.bat || 'N/A');
                 const main = document.createElement('div');
                 main.className = 'contact-main';
                 main.innerHTML = `
@@ -3274,7 +3405,10 @@
                     deviceInfo.telemetry.warnLastTime = parts[3].trim();
                     deviceInfo.telemetry.noise = parts[6].trim();
                     const unixTs = parseInt(parts[0]);
-                    if (!isNaN(unixTs) && unixTs > 0) startTelemetryClock(unixTs);
+                    if (!isNaN(unixTs) && unixTs > 0) {
+                        const date = new Date(unixTs * 1000);
+                        deviceInfo.telemetry.time = date.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+                    }
                 }
                 if (currentSyncSection === 'telemetry') { flashGreen('telemetry'); populateSettings(); }
                 return;
@@ -4103,7 +4237,11 @@
                         contacts.set(pk, {
                             ...c,
                             rssi:       parsed.rssi,
+                            snr:        parsed.snr,
                             route:      parsed.route,
+                            hops:       parsed.hops,
+                            outPathLen: parsed.outPathLen,
+                            outPath:    parsed.outPath,
                             lastAdvert: parsed.lastAdvert,
                             gps:        parsed.gps
                         });
@@ -4331,14 +4469,36 @@
             document.getElementById('ciType').textContent = typeMap[d.type] || d.type || '—';
             document.getElementById('ciPubKeyPrefix').textContent = d.pubKeyPrefix || '—';
             document.getElementById('ciPubKey').textContent = d.pubKey || '—';
+            document.getElementById('ciRoute').textContent = d.route || ph;
             document.getElementById('ciRSSI').textContent = d.rssi || ph;
             document.getElementById('ciSNR').textContent = d.snr || ph;
-            document.getElementById('ciRoute').textContent = d.route || ph;
             document.getElementById('ciHops').textContent = d.hops || ph;
             document.getElementById('ciOutPath').textContent = d.outPath || ph;
             document.getElementById('ciLastAdvert').textContent = d.lastAdvert || ph;
             document.getElementById('ciLastMod').textContent = d.lastMod || ph;
-            document.getElementById('ciLocation').textContent = d.gps || ph;
+            
+            // Display GPS location, converting altitude=0 to N/A
+            let gpsDisplay = ph;
+            if (d.gps && d.gps !== 'N/A' && d.gps !== ph) {
+                const gpsParts = d.gps.split(',').map(p => p.trim());
+                if (gpsParts.length >= 2) {
+                    // lat,lon or lat,lon,alt
+                    if (gpsParts.length === 3) {
+                        const alt = parseFloat(gpsParts[2]);
+                        if (alt === 0) {
+                            gpsDisplay = `${gpsParts[0]},${gpsParts[1]},N/A`;
+                        } else {
+                            gpsDisplay = d.gps;
+                        }
+                    } else {
+                        gpsDisplay = d.gps;
+                    }
+                } else {
+                    gpsDisplay = d.gps;
+                }
+            }
+            document.getElementById('ciLocation').textContent = gpsDisplay;
+            document.getElementById('ciDistance').textContent = d.distance || ph;
             
             // Cache lat/lon for editing
             if (d.gps && d.gps !== 'N/A' && d.gps !== ph) {
@@ -4665,13 +4825,18 @@
                     deviceInfo.gpsLon = lon;
                     deviceInfo.gpsValid = valid === '1' ? 'Yes' : 'No';
                     deviceInfo.gpsSatellites = satellites;
-                    deviceInfo.gpsAltitude = alt + ' m';
+                    deviceInfo.gpsAltitude = (alt === '0' || alt === 0) ? 'N/A' : (alt + ' m');
                     
                     // Display fields
                     document.getElementById('gpsValid').textContent = deviceInfo.gpsValid;
                     document.getElementById('gpsSatellites').textContent = deviceInfo.gpsSatellites;
                     document.getElementById('gpsAltitude').textContent = deviceInfo.gpsAltitude;
-                    document.getElementById('gpsLocation').textContent = `${lat},${lon}`;
+                    // Show N/A if location is 0,0
+                    if (lat === '0' && lon === '0') {
+                        document.getElementById('gpsLocation').textContent = 'N/A';
+                    } else {
+                        document.getElementById('gpsLocation').textContent = `${lat},${lon}`;
+                    }
                 } else {
                     // Fallback to old format parsing (Latitude/Longitude text)
                     const latMatch = deviceInfo.gpsInfo.match(/Latitude\s*:\s*([^\r\n]+)/);
@@ -4703,10 +4868,10 @@
 
             // Telemetry
             document.getElementById('telemetryBattery').textContent = deviceInfo.telemetry.battery || '0%';
+            document.getElementById('telemetryTime').textContent = deviceInfo.telemetry.time || 'N/A';
             document.getElementById('telemetryNoise').textContent = deviceInfo.telemetry.noise || '0';
             document.getElementById('telemetryRstTime').textContent = formatTimeFromTick(deviceInfo.telemetry.rstTime) || 'N/A';
             document.getElementById('telemetryWarnLastTime').textContent = formatTimeFromTick(deviceInfo.telemetry.warnLastTime) || 'N/A';
-            // Time ticks live via startTelemetryClock()
         }
 
         async function showSettings(skipReload = false) {
@@ -4907,7 +5072,7 @@
             'AT+CONLST?', 'AT+CONINF=', 'AT+CONADD=', 'AT+CONDEL=', 'AT+CONSHR=',
             'AT+CONWPATH=', 'AT+CONRPATH=',
             // --- GPS ---
-            'AT+GPSINF?', 'AT+GPSEN=', 'AT+GPSEN?', 'AT+GPSRST', 'AT+GPSCFG=', 'AT+GPSCFG?', 'AT+GPSSYNC',
+            'AT+GPSINF?', 'AT+GPSEN=', 'AT+GPSEN?', 'AT+GPSRST', 'AT+GPSCFG=', 'AT+GPSCFG?', 'AT+GPSSYNC', 'AT+GPSLOC=', 'AT+GPSLOC?',
             // --- Warn ---
             'AT+WARN=', 'AT+WARN?', 'AT+WARNEND', 'AT+WARNCFG=', 'AT+WARNCFG?'
         ];
