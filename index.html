@@ -1349,6 +1349,10 @@
                         </div>
                     </div>
                     <div class="field">
+                        <div class="field-label">Pubkey Prefix</div>
+                        <div class="item"><div class="value" id="infoPubkeyPrefix">—</div></div>
+                    </div>
+                    <div class="field">
                         <div class="field-label">Pubkey</div>
                         <div class="item"><div class="value" id="infoPubkey" style="word-break:break-all;font-size:12px;">0</div></div>
                     </div>
@@ -1428,12 +1432,23 @@
                         </div>
                     </div>
                     <div class="field">
-                        <div class="field-label">Latitude</div>
-                        <div class="item"><div class="value" id="gpsLat">0</div></div>
+                        <div class="field-label">Valid</div>
+                        <div class="item"><div class="value" id="gpsValid">N/A</div></div>
                     </div>
                     <div class="field">
-                        <div class="field-label">Longitude</div>
-                        <div class="item"><div class="value" id="gpsLon">0</div></div>
+                        <div class="field-label">Satellites</div>
+                        <div class="item"><div class="value" id="gpsSatellites">N/A</div></div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Location</div>
+                        <div class="item">
+                            <span class="value field-editable" id="gpsLocation">N/A</span>
+                            <i class="material-icons edit-icon" onclick="openEditGPSLocationModal()" title="Edit GPS Location">edit</i>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">Altitude</div>
+                        <div class="item"><div class="value" id="gpsAltitude">N/A</div></div>
                     </div>
                 </div>
             </div>
@@ -1582,8 +1597,11 @@
                         <div class="item"><div class="value" id="ciLastMod">—</div></div>
                     </div>
                     <div class="field">
-                        <div class="field-label">GPS</div>
-                        <div class="item"><div class="value" id="ciGPS">—</div></div>
+                        <div class="field-label">Location</div>
+                        <div class="item field-editable">
+                            <span class="value" id="ciLocation">—</span>
+                            <i class="material-icons edit-icon" onclick="openEditContactGPSLocationModal()" title="Edit Location">edit</i>
+                        </div>
                     </div>
                     <div class="field">
                         <div class="field-label">Distance</div>
@@ -1669,6 +1687,30 @@
             <div class="modal-footer">
                 <button class="btn-secondary" onclick="closeEditParamModal()">Cancel</button>
                 <button class="btn-primary" id="submitEditBtn" onclick="submitEditParam()">
+                    <i class="material-icons">check</i> Send
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit GPS Location Modal -->
+    <div id="editGPSLocationModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit GPS Location</h2>
+                <button class="modal-close" type="button" onclick="closeEditGPSLocationModal()" aria-label="Close">
+                    <i class="material-icons">close</i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-field">
+                    <label>Location (lat,lon):</label>
+                    <input type="text" id="editGPSLocationInput" placeholder="e.g., 16.073976,108.150309" autocomplete="off" spellcheck="false" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeEditGPSLocationModal()">Cancel</button>
+                <button class="btn-primary" id="submitGPSLocationBtn" onclick="submitEditGPSLocation()">
                     <i class="material-icons">check</i> Send
                 </button>
             </div>
@@ -1924,6 +1966,11 @@
             loraConfig: '',
             gpsEnabled: '',
             gpsInfo: '',
+            gpsValid: 'N/A',
+            gpsSatellites: 'N/A',
+            gpsLat: 'N/A',
+            gpsLon: 'N/A',
+            gpsAltitude: 'N/A',
             telemetry: {
                 battery: '',
                 noise: '',
@@ -2153,6 +2200,212 @@
         }
 
         /**
+         * Open edit GPS location modal
+         */
+        function openEditGPSLocationModal() {
+            const currentLat = deviceInfo.gpsLat || 'N/A';
+            const currentLon = deviceInfo.gpsLon || 'N/A';
+            let locationStr = '';
+            if (currentLat !== 'N/A' && currentLon !== 'N/A') {
+                locationStr = `${currentLat},${currentLon}`;
+            }
+            
+            document.getElementById('editGPSLocationInput').value = locationStr;
+            document.getElementById('editGPSLocationInput').disabled = false;
+            document.getElementById('submitGPSLocationBtn').disabled = false;
+            document.getElementById('submitGPSLocationBtn').innerHTML = '<i class="material-icons">check</i> Send';
+            
+            document.getElementById('editGPSLocationModal').classList.remove('hidden');
+            document.getElementById('editGPSLocationInput').focus();
+        }
+
+        /**
+         * Open edit GPS location modal for contact info
+         */
+        function openEditContactGPSLocationModal() {
+            if (!currentContactInfoPrefix) {
+                showErrorNotification('No contact selected');
+                return;
+            }
+            
+            const contactData = contactInfoCache.get(currentContactInfoPrefix) || {};
+            const currentLat = contactData.lat || 'N/A';
+            const currentLon = contactData.lon || 'N/A';
+            let locationStr = '';
+            if (currentLat !== 'N/A' && currentLon !== 'N/A') {
+                locationStr = `${currentLat},${currentLon}`;
+            }
+            
+            document.getElementById('editGPSLocationInput').value = locationStr;
+            document.getElementById('editGPSLocationInput').disabled = false;
+            document.getElementById('submitGPSLocationBtn').disabled = false;
+            document.getElementById('submitGPSLocationBtn').innerHTML = '<i class="material-icons">check</i> Send';
+            document.getElementById('submitGPSLocationBtn').onclick = submitEditContactGPSLocation;
+            
+            document.getElementById('editGPSLocationModal').classList.remove('hidden');
+            document.getElementById('editGPSLocationInput').focus();
+        }
+
+        /**
+         * Close edit GPS location modal
+         */
+        function closeEditGPSLocationModal() {
+            document.getElementById('editGPSLocationModal').classList.add('hidden');
+            document.getElementById('editGPSLocationInput').value = '';
+            document.getElementById('submitGPSLocationBtn').onclick = submitEditGPSLocation;
+        }
+
+        /**
+         * Submit edited GPS location (for device info)
+         */
+        async function submitEditGPSLocation() {
+            const locationStr = document.getElementById('editGPSLocationInput').value.trim();
+            
+            if (!locationStr) {
+                showErrorNotification('Please enter location in format: lat,lon');
+                return;
+            }
+            
+            // Parse lat,lon
+            const parts = locationStr.split(',');
+            if (parts.length !== 2) {
+                showErrorNotification('Location must be in format: lat,lon (e.g., 16.073976,108.150309)');
+                return;
+            }
+            
+            const lat = parts[0].trim();
+            const lon = parts[1].trim();
+            
+            // Validate that inputs are valid numbers
+            const latNum = parseFloat(lat);
+            const lonNum = parseFloat(lon);
+            if (isNaN(latNum) || isNaN(lonNum)) {
+                showErrorNotification('Latitude and longitude must be valid numbers');
+                return;
+            }
+            
+            // Validate ranges
+            if (latNum < -90 || latNum > 90) {
+                showErrorNotification('Latitude must be between -90 and 90');
+                return;
+            }
+            if (lonNum < -180 || lonNum > 180) {
+                showErrorNotification('Longitude must be between -180 and 180');
+                return;
+            }
+            
+            document.getElementById('submitGPSLocationBtn').disabled = true;
+            document.getElementById('submitGPSLocationBtn').innerHTML = '<div class="spinner-small"></div> Sending...';
+            
+            try {
+                if (!charTX || !isBleConnected()) {
+                    throw new Error('Not connected to device');
+                }
+                
+                // Send AT+GPSLOC command
+                const atCommand = `AT+GPSLOC=${lat},${lon}\r\n`;
+                await commandQueue.enqueue(atCommand, { timeout: 3000 });
+                
+                // Update UI with new location
+                document.getElementById('gpsLocation').textContent = `${lat},${lon}`;
+                deviceInfo.gpsLat = lat;
+                deviceInfo.gpsLon = lon;
+                
+                addMessage(`GPS location updated: ${lat},${lon}`, 'sys', SYSTEM_KEY);
+                closeEditGPSLocationModal();
+            } catch (err) {
+                showErrorNotification('Error: ' + err.message);
+                document.getElementById('submitGPSLocationBtn').disabled = false;
+                document.getElementById('submitGPSLocationBtn').innerHTML = '<i class="material-icons">check</i> Send';
+            }
+        }
+
+        /**
+         * Submit edited GPS location (for contact info)
+         */
+        async function submitEditContactGPSLocation() {
+            const locationStr = document.getElementById('editGPSLocationInput').value.trim();
+            
+            if (!locationStr) {
+                showErrorNotification('Please enter location in format: lat,lon');
+                return;
+            }
+            
+            if (!currentContactInfoPrefix) {
+                showErrorNotification('No contact selected');
+                return;
+            }
+            
+            // Parse lat,lon
+            const parts = locationStr.split(',');
+            if (parts.length !== 2) {
+                showErrorNotification('Location must be in format: lat,lon (e.g., 16.073976,108.150309)');
+                return;
+            }
+            
+            const lat = parts[0].trim();
+            const lon = parts[1].trim();
+            
+            // Validate that inputs are valid numbers
+            const latNum = parseFloat(lat);
+            const lonNum = parseFloat(lon);
+            if (isNaN(latNum) || isNaN(lonNum)) {
+                showErrorNotification('Latitude and longitude must be valid numbers');
+                return;
+            }
+            
+            // Validate ranges
+            if (latNum < -90 || latNum > 90) {
+                showErrorNotification('Latitude must be between -90 and 90');
+                return;
+            }
+            if (lonNum < -180 || lonNum > 180) {
+                showErrorNotification('Longitude must be between -180 and 180');
+                return;
+            }
+            
+            document.getElementById('submitGPSLocationBtn').disabled = true;
+            document.getElementById('submitGPSLocationBtn').innerHTML = '<div class="spinner-small"></div> Sending...';
+            
+            try {
+                if (!charTX || !isBleConnected()) {
+                    throw new Error('Not connected to device');
+                }
+                
+                // Send AT+GPSLOC command with contact prefix format: AT+GPSLOC=lat,lon@prefix
+                const atCommand = `AT+GPSLOC=${lat},${lon}@${currentContactInfoPrefix}\r\n`;
+                await commandQueue.enqueue(atCommand, { timeout: 3000 });
+                
+                // Update cache and UI with new location after successful send
+                if (!contactInfoCache.get(currentContactInfoPrefix)) {
+                    contactInfoCache.set(currentContactInfoPrefix, {});
+                }
+                const contactData = contactInfoCache.get(currentContactInfoPrefix);
+                contactData.lat = lat;
+                contactData.lon = lon;
+                contactData.gps = `${lat},${lon}`;
+                
+                // Update the display with new location
+                document.getElementById('ciLocation').textContent = `${lat},${lon}`;
+                
+                // Also update in contacts map if it exists
+                for (const [pk, c] of contacts) {
+                    if (pubkeyPrefix(pk) === currentContactInfoPrefix) {
+                        c.gps = `${lat},${lon}`;
+                        break;
+                    }
+                }
+                
+                addMessage(`Contact GPS location updated: ${lat},${lon}`, 'sys', SYSTEM_KEY);
+                closeEditGPSLocationModal();
+            } catch (err) {
+                showErrorNotification('Error: ' + err.message);
+                document.getElementById('submitGPSLocationBtn').disabled = false;
+                document.getElementById('submitGPSLocationBtn').innerHTML = '<i class="material-icons">check</i> Send';
+            }
+        }
+
+        /**
          * Submit edited parameter value
          */
         async function submitEditParam() {
@@ -2367,30 +2620,25 @@
             let hasValidMarkers = false;
 
             // 1. Device Info (Red Marker)
-            if (deviceInfo && deviceInfo.gpsInfo) {
-                const latMatch = deviceInfo.gpsInfo.match(/Latitude\s*:\s*(-?\d+(?:\.\d+)?)/i);
-                const lonMatch = deviceInfo.gpsInfo.match(/Longitude\s*:\s*(-?\d+(?:\.\d+)?)/i);
+            if (deviceInfo && deviceInfo.gpsLat && deviceInfo.gpsLon && deviceInfo.gpsLat !== 'N/A' && deviceInfo.gpsLon !== 'N/A') {
+                const lat = parseFloat(deviceInfo.gpsLat);
+                const lon = parseFloat(deviceInfo.gpsLon);
                 
-                if (latMatch && lonMatch) {
-                    const lat = parseFloat(latMatch[1]);
-                    const lon = parseFloat(lonMatch[1]);
+                if (!isNaN(lat) && !isNaN(lon) && (lat !== 0 || lon !== 0)) {
+                    const redIcon = L.divIcon({
+                        html: '<i class="material-icons" style="color: #e74c3c; font-size: 36px; text-shadow: 1px 1px 3px rgba(0,0,0,0.4);">location_on</i>',
+                        className: 'custom-map-icon',
+                        iconSize: [36, 36],
+                        iconAnchor: [18, 36]
+                    });
+                    const marker = L.marker([lat, lon], { icon: redIcon }).addTo(worldMap);
                     
-                    if (!isNaN(lat) && !isNaN(lon) && (lat !== 0 || lon !== 0)) {
-                        const redIcon = L.divIcon({
-                            html: '<i class="material-icons" style="color: #e74c3c; font-size: 36px; text-shadow: 1px 1px 3px rgba(0,0,0,0.4);">location_on</i>',
-                            className: 'custom-map-icon',
-                            iconSize: [36, 36],
-                            iconAnchor: [18, 36]
-                        });
-                        const marker = L.marker([lat, lon], { icon: redIcon }).addTo(worldMap);
-                        
-                        const labelName = deviceInfo.deviceName || 'My Device';
-                        marker.bindTooltip(labelName, { permanent: true, direction: 'right', className: 'map-label', offset: [0, -18] });
-                        
-                        mapMarkers.push(marker);
-                        bounds.extend([lat, lon]);
-                        hasValidMarkers = true;
-                    }
+                    const labelName = deviceInfo.deviceName || 'My Device';
+                    marker.bindTooltip(labelName, { permanent: true, direction: 'right', className: 'map-label', offset: [0, -18] });
+                    
+                    mapMarkers.push(marker);
+                    bounds.extend([lat, lon]);
+                    hasValidMarkers = true;
                 }
             }
 
@@ -2748,11 +2996,12 @@
                     const rect = menuBtn.getBoundingClientRect();
                     const popup = document.createElement('div');
                     popup.className = 'contact-menu-popup';
-                    const fitsBelow = rect.bottom + 4 + 148 <= window.innerHeight;
-                    popup.style.top = fitsBelow ? (rect.bottom + 4) + 'px' : (rect.top - 148) + 'px';
+                    const fitsBelow = rect.bottom + 4 + 185 <= window.innerHeight; // Adjusted for extra item height
+                    popup.style.top = fitsBelow ? (rect.bottom + 4) + 'px' : (rect.top - 185) + 'px';
                     popup.style.right = (window.innerWidth - rect.right) + 'px';
                     popup.innerHTML = `
                         <div class="menu-item" data-action="info"><i class="material-icons">info</i> Information</div>
+                        <div class="menu-item" data-action="advert"><i class="material-icons">wifi_tethering</i> Advert</div>
                         <div class="menu-item" data-action="share"><i class="material-icons">share</i> Share contact</div>
                         <div class="menu-item danger" data-action="delete"><i class="material-icons">delete</i> Delete contact</div>
                     `;
@@ -2761,6 +3010,7 @@
                             ev.stopPropagation();
                             const act = mi.dataset.action;
                             if (act === 'info') showContactInfo(c);
+                            else if (act === 'advert') sendAdvert(c.pubkey);
                             else if (act === 'share') shareContact(c);
                             else if (act === 'delete') deleteContact(c.pubkey);
                             popup.remove();
@@ -3031,11 +3281,40 @@
             }
 
             if (trimmed.startsWith('+GPSINF:')) {
-                // Start collecting GPS info
-                collectingGpsInfo = true;
-                deviceInfo.gpsInfo = trimmed + '\n';
-                resetGpsIdleTimer();
-                return;
+                // Check if this is a complete GPS response (comma-separated 6 fields: enabled,valid,satellites,lat,lon,alt)
+                // Format: +GPSINF: 1,0,0,16.0577534,108.1187309,0
+                const gpsDataMatch = trimmed.match(/^\+GPSINF:\s*(\d+),(\d+),(\d+),([\d.-]+),([\d.-]+),(\d+)$/);
+                
+                if (gpsDataMatch) {
+                    // Complete GPS response in new format - parse immediately, no idle timeout needed
+                    deviceInfo.gpsInfo = trimmed;
+                    collectingGpsInfo = false;
+                    if (gpsIdleTimer) clearTimeout(gpsIdleTimer);
+                    
+                    // Parse GPS data directly
+                    const enabled = gpsDataMatch[1];
+                    const valid = gpsDataMatch[2];
+                    const satellites = gpsDataMatch[3];
+                    const lat = gpsDataMatch[4];
+                    const lon = gpsDataMatch[5];
+                    const alt = gpsDataMatch[6];
+                    
+                    deviceInfo.gpsEnabled = enabled === '1' ? 'Enabled' : 'Disabled';
+                    deviceInfo.gpsValid = valid === '1' ? 'Yes' : 'No';
+                    deviceInfo.gpsSatellites = satellites;
+                    deviceInfo.gpsLat = lat;
+                    deviceInfo.gpsLon = lon;
+                    deviceInfo.gpsAltitude = alt + ' m';
+                    
+                    if (currentSyncSection === 'gps') { flashGreen('gps'); populateSettings(); }
+                    return;
+                } else {
+                    // Old format or incomplete - start collecting with idle timeout
+                    collectingGpsInfo = true;
+                    deviceInfo.gpsInfo = trimmed + '\n';
+                    resetGpsIdleTimer();
+                    return;
+                }
             }
 
             // Continue collecting GPS info until OK or next command or idle timeout
@@ -3394,16 +3673,18 @@
                 // Wait 1 second for system to stabilize before requesting device info
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
-                // Request device info after stabilization delay
+                // Request device info first (without contact list), then contact list separately
                 try {
-                    await requestDeviceInfo();
+                    await requestDeviceInfoOnly();
                     addMessage("Device info loaded.", "sys", SYSTEM_KEY);
+                    
+                    // After device info is loaded, sync contact list
+                    await syncContactList();
                 } catch (err) {
                     addMessage("Error loading device info: " + err, "sys", SYSTEM_KEY);
                 }
 
                 // Stay in loading state until contacts arrive.
-                // AT+CONLST? is already sent (with retry) inside requestDeviceInfo above.
                 if (contacts.size === 0) setContactsLoading(true, 'Waiting for contacts...');
                 else setContactsLoading(false);
             } catch (err) {
@@ -3542,6 +3823,33 @@
                 return;
             }
             await runFullSync();
+        }
+
+        /**
+         * Request device info only (without syncing contact list)
+         * This is used during initial connection to load device info first
+         */
+        async function requestDeviceInfoOnly() {
+            if (!charTX || !isBleConnected()) {
+                console.log("[CMD] Cannot request - charTX:", !!charTX, "connected:", isBleConnected());
+                return;
+            }
+            
+            // Send only 3 essential info requests during initial connection
+            try {
+                // 1. Request system ID and public key
+                await commandQueue.enqueue("AT+SYSID?\r\n", { timeout: 3000, retries: 2 });
+                await new Promise(r => setTimeout(r, 200));
+
+                // 2. Request public key
+                await commandQueue.enqueue("AT+SYSPUBK?\r\n", { timeout: 3000, retries: 1 });
+                await new Promise(r => setTimeout(r, 200));
+
+                // 3. Request GPS info
+                await commandQueue.enqueue("AT+GPSINF?\r\n", { timeout: 3000, retries: 1 });
+            } catch (e) {
+                console.error("Error requesting device info:", e);
+            }
         }
 
         function flashGreen(section) {
@@ -3825,6 +4133,11 @@
          */
         async function bleWriteChunked(str, chunkSize = 20) {
             if (!charTX || !isBleConnected()) return false;
+            
+            // Log command sent to BLE
+            console.log(`[BLE TX] ${str.trim()}`);
+            appendTerminalMessage(`[TX] ${str.trim()}`, 'sent');
+
             const bytes = new TextEncoder().encode(str);
             const useWWR = charTX.properties && charTX.properties.writeWithoutResponse;
             for (let i = 0; i < bytes.length; i += chunkSize) {
@@ -3992,7 +4305,7 @@
                     document.getElementById('ciOutPath').textContent = '—';
                     document.getElementById('ciLastAdvert').textContent = '—';
                     document.getElementById('ciLastMod').textContent = '—';
-                    document.getElementById('ciGPS').textContent = '—';
+                    document.getElementById('ciLocation').textContent = '—';
                     isContactInfoSyncing = false;
                     document.getElementById('syncContactInfoIcon')?.classList.remove('spin-anim');
                     continue;
@@ -4025,7 +4338,16 @@
             document.getElementById('ciOutPath').textContent = d.outPath || ph;
             document.getElementById('ciLastAdvert').textContent = d.lastAdvert || ph;
             document.getElementById('ciLastMod').textContent = d.lastMod || ph;
-            document.getElementById('ciGPS').textContent = d.gps || ph;
+            document.getElementById('ciLocation').textContent = d.gps || ph;
+            
+            // Cache lat/lon for editing
+            if (d.gps && d.gps !== 'N/A' && d.gps !== ph) {
+                const gpsParts = d.gps.split(',');
+                if (gpsParts.length === 2) {
+                    d.lat = gpsParts[0].trim();
+                    d.lon = gpsParts[1].trim();
+                }
+            }
             
             // Calculate Distance
             let distanceStr = 'N/A';
@@ -4038,13 +4360,9 @@
                 let devLon = null;
                 
                 // Get device coordinates
-                if (deviceInfo.gpsInfo) {
-                    const latMatch = deviceInfo.gpsInfo.match(/Latitude\s*:\s*([^\r\n]+)/);
-                    const lonMatch = deviceInfo.gpsInfo.match(/Longitude\s*:\s*([^\r\n]+)/);
-                    if (latMatch && lonMatch) {
-                        devLat = parseFloat(latMatch[1]);
-                        devLon = parseFloat(lonMatch[1]);
-                    }
+                if (deviceInfo.gpsLat && deviceInfo.gpsLat !== 'N/A' && deviceInfo.gpsLon && deviceInfo.gpsLon !== 'N/A') {
+                    devLat = parseFloat(deviceInfo.gpsLat);
+                    devLon = parseFloat(deviceInfo.gpsLon);
                 }
                 
                 if (devLat !== null && devLon !== null && !isNaN(cLat) && !isNaN(cLon)) {
@@ -4103,6 +4421,20 @@
             renderContacts();
         }
 
+        async function sendAdvert(pubkey) {
+            const prefix = pubkeyPrefix(pubkey);
+            if (charTX && isBleConnected() && prefix) {
+                try {
+                    await commandQueue.enqueue(`AT+LRADV=1@${prefix}\r\n`);
+                    addMessage(`Requested Advert: AT+LRADV=1@${prefix}`, 'sys', SYSTEM_KEY);
+                } catch (e) {
+                    addMessage('Error sending AT+LRADV: ' + e, 'sys', SYSTEM_KEY);
+                }
+            } else {
+                addMessage('Cannot send advert: BLE not connected', 'sys', SYSTEM_KEY);
+            }
+        }
+
         function getSectionForType(type) {
             if (['SYSID', 'NWKKEY', 'LRCH'].includes(type)) return 'info';
             if (['LRFQ', 'LRSF', 'LRBW', 'LRTXP'].includes(type)) return 'lora';
@@ -4133,6 +4465,11 @@
             deviceInfo.loraConfig   = '';
             deviceInfo.gpsEnabled   = '';
             deviceInfo.gpsInfo      = '';
+            deviceInfo.gpsValid     = 'N/A';
+            deviceInfo.gpsSatellites = 'N/A';
+            deviceInfo.gpsLat       = 'N/A';
+            deviceInfo.gpsLon       = 'N/A';
+            deviceInfo.gpsAltitude  = 'N/A';
             deviceInfo.telemetry.battery = '';
             deviceInfo.telemetry.noise   = '';
             
@@ -4271,7 +4608,7 @@
             try {
                 // Send exactly as typed through command queue
                 const fullCmd = cmd.endsWith('\r\n') ? cmd : cmd + '\r\n';
-                appendTerminalMessage('> ' + cmd, 'sent');
+                // Remove redundant log since bleWriteChunked now logs all sent commands globally
                 
                 await commandQueue.enqueue(fullCmd, {
                     timeout: 3000
@@ -4286,6 +4623,7 @@
         
         function populateSettings() {
             document.getElementById('infoNameInput').textContent = deviceInfo.deviceName || '';
+            document.getElementById('infoPubkeyPrefix').textContent = deviceInfo.publicKey ? deviceInfo.publicKey.substring(0, 12) : 'N/A';
             document.getElementById('infoPubkey').textContent = deviceInfo.publicKey || 'N/A';
             document.getElementById('infoNetworkKeyInput').textContent = deviceInfo.networkKey || '';
             document.getElementById('infoChannelInput').textContent = deviceInfo.channel || '';
@@ -4310,15 +4648,57 @@
 
             document.getElementById('gpsStatusSelect').textContent = deviceInfo.gpsEnabled || '0';
 
-            // Parse GPS coordinates from gpsInfo
+            // Parse GPS info from +GPSINF: enabled,valid,satellites,lat,lon,alt
             if (deviceInfo.gpsInfo) {
-                const latMatch = deviceInfo.gpsInfo.match(/Latitude\s*:\s*([^\r\n]+)/);
-                const lonMatch = deviceInfo.gpsInfo.match(/Longitude\s*:\s*([^\r\n]+)/);
-                document.getElementById('gpsLat').textContent = latMatch ? latMatch[1].trim() : 'N/A';
-                document.getElementById('gpsLon').textContent = lonMatch ? lonMatch[1].trim() : 'N/A';
+                // Try to parse from new format: +GPSINF: enabled,valid,satellites,lat,lon,alt
+                const gpsinfoMatch = deviceInfo.gpsInfo.match(/\+GPSINF:\s*(\d+),(\d+),(\d+),([\d.-]+),([\d.-]+),(\d+)/);
+                if (gpsinfoMatch) {
+                    const enabled = gpsinfoMatch[1];
+                    const valid = gpsinfoMatch[2];
+                    const satellites = gpsinfoMatch[3];
+                    const lat = gpsinfoMatch[4];
+                    const lon = gpsinfoMatch[5];
+                    const alt = gpsinfoMatch[6];
+                    
+                    // Store for later use
+                    deviceInfo.gpsLat = lat;
+                    deviceInfo.gpsLon = lon;
+                    deviceInfo.gpsValid = valid === '1' ? 'Yes' : 'No';
+                    deviceInfo.gpsSatellites = satellites;
+                    deviceInfo.gpsAltitude = alt + ' m';
+                    
+                    // Display fields
+                    document.getElementById('gpsValid').textContent = deviceInfo.gpsValid;
+                    document.getElementById('gpsSatellites').textContent = deviceInfo.gpsSatellites;
+                    document.getElementById('gpsAltitude').textContent = deviceInfo.gpsAltitude;
+                    document.getElementById('gpsLocation').textContent = `${lat},${lon}`;
+                } else {
+                    // Fallback to old format parsing (Latitude/Longitude text)
+                    const latMatch = deviceInfo.gpsInfo.match(/Latitude\s*:\s*([^\r\n]+)/);
+                    const lonMatch = deviceInfo.gpsInfo.match(/Longitude\s*:\s*([^\r\n]+)/);
+                    const lat = latMatch ? latMatch[1].trim() : 'N/A';
+                    const lon = lonMatch ? lonMatch[1].trim() : 'N/A';
+                    deviceInfo.gpsLat = lat;
+                    deviceInfo.gpsLon = lon;
+                    if (lat !== 'N/A' && lon !== 'N/A') {
+                        document.getElementById('gpsLocation').textContent = `${lat},${lon}`;
+                    } else {
+                        document.getElementById('gpsLocation').textContent = 'N/A';
+                    }
+                    document.getElementById('gpsValid').textContent = 'N/A';
+                    document.getElementById('gpsSatellites').textContent = 'N/A';
+                    document.getElementById('gpsAltitude').textContent = 'N/A';
+                }
             } else {
-                document.getElementById('gpsLat').textContent = 'N/A';
-                document.getElementById('gpsLon').textContent = 'N/A';
+                document.getElementById('gpsLocation').textContent = 'N/A';
+                document.getElementById('gpsValid').textContent = 'N/A';
+                document.getElementById('gpsSatellites').textContent = 'N/A';
+                document.getElementById('gpsAltitude').textContent = 'N/A';
+                deviceInfo.gpsLat = 'N/A';
+                deviceInfo.gpsLon = 'N/A';
+                deviceInfo.gpsValid = 'N/A';
+                deviceInfo.gpsSatellites = 'N/A';
+                deviceInfo.gpsAltitude = 'N/A';
             }
 
             // Telemetry
