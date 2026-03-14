@@ -39,6 +39,26 @@
             overscroll-behavior: none;
         }
 
+        .thtech-watermark::before {
+            content: "THTECH";
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Trebuchet MS', 'Arial Black', sans-serif;
+            font-size: 16vw;
+            font-weight: 900;
+            font-style: italic;
+            color: transparent;
+            -webkit-text-stroke: 2px rgba(0, 0, 0, 0.08);
+            text-shadow: 3px 6px 10px rgba(0, 0, 0, 0.05);
+            letter-spacing: 0.1em;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 10;
+            user-select: none;
+        }
+
         header {
             background: var(--header);
             color: #fff;
@@ -1286,7 +1306,7 @@
                 </div>
             </div>
             <div id="contactList" class="contact-list" role="list"></div>
-            <div id="emptyContacts" class="empty hidden">No contacts yet.</div>
+            <div id="emptyContacts" class="empty hidden thtech-watermark">No contacts yet.</div>
         </div>
 
         <div id="mapTabContent" class="hidden" style="flex:1; min-height:0; position:relative;">
@@ -1330,7 +1350,7 @@
                     </div>
                     <div class="field">
                         <div class="field-label">Pubkey</div>
-                        <div class="item"><div class="value" id="infoPubkey">0</div></div>
+                        <div class="item"><div class="value" id="infoPubkey" style="word-break:break-all;font-size:12px;">0</div></div>
                     </div>
                     <div class="field">
                         <div class="field-label">Network key</div>
