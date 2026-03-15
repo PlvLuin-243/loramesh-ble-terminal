@@ -175,17 +175,25 @@
         .btn-connect {
             background: #fff;
             color: var(--header);
-            border: none;
-            padding: 6px 12px;
+            border: 1px solid #eee;
+            height: 32px;
+            padding: 0 12px;
             border-radius: 999px;
             display: inline-flex;
             align-items: center;
-            font-weight: 500;
+            justify-content: center;
+            gap: 4px;
             cursor: pointer;
-            transition: transform 0.06s ease, background-color 0.15s ease, padding 0.15s ease, width 0.15s ease, height 0.15s ease;
+            transition: transform 0.06s ease, background-color 0.15s ease, padding 0.15s ease, width 0.15s ease;
             flex: 0 0 auto;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-connect.icon-only {
+            width: 32px;
+            padding: 0;
+            gap: 0;
         }
 
         .btn-connect:active {
@@ -195,7 +203,16 @@
 
         .btn-connect .material-icons {
             font-size: 16px;
-            margin-right: 4px;
+            margin-right: 0;
+        }
+
+        .btn-connect-label {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .btn-connect.icon-only .btn-connect-label {
+            display: none;
         }
 
         .btn-icon {
@@ -694,6 +711,21 @@
             border-left-color: #999;
         }
 
+        .msg.clickable {
+            cursor: pointer;
+        }
+
+        .msg-main {
+            white-space: pre-wrap;
+        }
+
+        .msg-time {
+            margin-top: 4px;
+            font-size: 11px;
+            opacity: 0.75;
+            text-align: right;
+        }
+
         .input-bar {
             background: var(--surface);
             padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
@@ -759,6 +791,17 @@
             border-left: 3px solid #999;
         }
 
+        .terminal-msg-main {
+            white-space: pre-wrap;
+        }
+
+        .terminal-msg-time {
+            margin-top: 4px;
+            font-size: 11px;
+            opacity: 0.7;
+            text-align: right;
+        }
+
         .terminal-msg.terminal-sent {
             color: #0066cc;
             border-left-color: #0066cc;
@@ -796,7 +839,6 @@
 
         @media (max-width: 380px) {
             .header-title h1 { font-size: 17px; }
-            .btn-connect { padding: 8px 12px; }
             .msg { max-width: 86%; }
         }
 
@@ -1186,6 +1228,31 @@
             color: #333;
         }
 
+        .message-info-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .message-info-item {
+            background: #f6f6f6;
+            border-radius: 6px;
+            padding: 10px 12px;
+        }
+
+        .message-info-label {
+            color: rgba(0,0,0,0.58);
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .message-info-value {
+            color: #222;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            word-break: break-word;
+        }
+
         .btn-secondary:hover {
             background: #ddd;
         }
@@ -1261,9 +1328,9 @@
         </div>
 
         <div style="display:flex;gap:8px;align-items:center;">
-            <button id="connectBtn" class="btn-connect" type="button" onclick="connectBLE()" title="Connect/Disconnect">
-                <i class="material-icons" aria-hidden="true">bluetooth</i>
-                <span id="connectLabel">Connect</span>
+            <button id="connectBtn" class="btn-connect" type="button" onclick="connectBLE()" title="Connect" aria-label="Connect">
+                <i id="connectIcon" class="material-icons" aria-hidden="true">bluetooth</i>
+                <span id="connectLabel" class="btn-connect-label">Connect</span>
             </button>
 
             <button id="syncContactsBtn" class="btn-icon hidden" type="button" onclick="syncContactList()" title="Sync contact list">
@@ -1710,6 +1777,45 @@
         </div>
     </div>
 
+    <!-- Message Signal Info Modal -->
+    <div id="messageSignalModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Message Signal Info</h2>
+                <button class="modal-close" type="button" onclick="closeMessageSignalModal()" aria-label="Close">
+                    <i class="material-icons">close</i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="message-info-grid">
+                    <div class="message-info-item">
+                        <div class="message-info-label">RSSI</div>
+                        <div class="message-info-value" id="msgInfoRSSI">—</div>
+                    </div>
+                    <div class="message-info-item">
+                        <div class="message-info-label">SNR</div>
+                        <div class="message-info-value" id="msgInfoSNR">—</div>
+                    </div>
+                    <div class="message-info-item">
+                        <div class="message-info-label">Distance</div>
+                        <div class="message-info-value" id="msgInfoDistance">—</div>
+                    </div>
+                    <div class="message-info-item">
+                        <div class="message-info-label">Time</div>
+                        <div class="message-info-value" id="msgInfoTime">—</div>
+                    </div>
+                    <div class="message-info-item">
+                        <div class="message-info-label">Contact</div>
+                        <div class="message-info-value" id="msgInfoContact">—</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeMessageSignalModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script>
         const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
@@ -2000,6 +2106,9 @@
         let coninfQueue = [];
         let coninfFetching = false;
         let coninfBulkDebounceTimer = null;
+        let messageIdCounter = 0;
+        // contactKey -> latest 10 incoming message signal snapshots
+        const recentIncomingMessageInfos = new Map();
 
         // ── Edit Parameter Modal State ─────────────────────────────────────────
         let editingParam = null;  // { name, command, currentValue, field }
@@ -2044,22 +2153,208 @@
             return shortDescription;
         }
 
-        function addMessage(text, type, keyOverride) {
-            const key = keyOverride || activeKey || SYSTEM_KEY;
-            if (!histories.has(key)) histories.set(key, []);
-            histories.get(key).push({ text, type: type || 'sys' });
+        function extractDeviceTimestamp(text) {
+            const s = String(text || '');
 
-            // Only render if we are currently viewing this chat.
-            if (document.getElementById('chat').classList.contains('hidden')) return;
-            if (key !== activeKey) return;
-            appendMessageToDom(text, type);
+            // 1) ISO-like: 2026-03-15 10:20:30 or 2026-03-15T10:20:30
+            let m = s.match(/\b(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})\b/);
+            if (m) {
+                const d = new Date(m[1].replace(' ', 'T'));
+                if (!isNaN(d.getTime())) return d;
+            }
+
+            // 2) VN format: dd/mm/yyyy hh:mm:ss
+            m = s.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\b/);
+            if (m) {
+                const d = new Date(
+                    Number(m[3]),
+                    Number(m[2]) - 1,
+                    Number(m[1]),
+                    Number(m[4]),
+                    Number(m[5]),
+                    Number(m[6])
+                );
+                if (!isNaN(d.getTime())) return d;
+            }
+
+            // 3) Labeled unix timestamp: time=1742025000 / timestamp:1742025000
+            m = s.match(/(?:time|timestamp|ts)\s*[:=]\s*([12]\d{9})\b/i);
+            if (m) {
+                const sec = Number(m[1]);
+                const d = new Date(sec * 1000);
+                if (!isNaN(d.getTime())) return d;
+            }
+
+            return null;
         }
 
-        function appendMessageToDom(text, type) {
+        function resolveHybridTimestamp(text, explicitTs) {
+            if (explicitTs) {
+                const d = explicitTs instanceof Date ? explicitTs : new Date(explicitTs);
+                if (!isNaN(d.getTime())) return d;
+            }
+            const fromDevice = extractDeviceTimestamp(text);
+            if (fromDevice) return fromDevice;
+            return new Date();
+        }
+
+        function formatMessageTime(ts) {
+            const d = ts instanceof Date ? ts : new Date(ts);
+            if (isNaN(d.getTime())) return '--:--:--';
+            return d.toLocaleTimeString('vi-VN', { hour12: false });
+        }
+
+        function addMessage(text, type, keyOverride, options = {}) {
+            const key = keyOverride || activeKey || SYSTEM_KEY;
+            if (!histories.has(key)) histories.set(key, []);
+
+            const ts = resolveHybridTimestamp(text, options.timestamp);
+            const entry = {
+                id: ++messageIdCounter,
+                text,
+                type: type || 'sys',
+                ts: ts.toISOString(),
+                signalInfo: options.signalInfo || null
+            };
+            histories.get(key).push(entry);
+
+            // Only render if we are currently viewing this chat.
+            if (!document.getElementById('chat').classList.contains('hidden') && key === activeKey) {
+                appendMessageToDom(entry, key);
+            }
+            return entry.id;
+        }
+
+        function buildSignalInfoFromConinfData(data, messageTs) {
+            let dist = data?.distance || '';
+            if (!dist && data?.gps && data.gps !== 'N/A') {
+                const gpsParts = data.gps.split(',').map(p => p.trim());
+                if (gpsParts.length >= 2) {
+                    const cLat = parseFloat(gpsParts[0]);
+                    const cLon = parseFloat(gpsParts[1]);
+                    const dLat = parseFloat(deviceInfo.gpsLat);
+                    const dLon = parseFloat(deviceInfo.gpsLon);
+                    if (!isNaN(cLat) && !isNaN(cLon) && !isNaN(dLat) && !isNaN(dLon)) {
+                        dist = formatDistance(calculateDistance(dLat, dLon, cLat, cLon));
+                    }
+                }
+            }
+
+            return {
+                rssi: data?.rssi || 'N/A',
+                snr: data?.snr || 'N/A',
+                distance: dist || 'N/A',
+                time: formatMessageTime(messageTs),
+                capturedAt: new Date().toISOString()
+            };
+        }
+
+        function attachSignalInfoToMessage(contactKey, messageId, signalInfo) {
+            const items = histories.get(contactKey) || [];
+            const idx = items.findIndex(m => m.id === messageId);
+            if (idx === -1) return;
+
+            items[idx].signalInfo = signalInfo;
+
+            const arr = recentIncomingMessageInfos.get(contactKey) || [];
+            arr.push({ messageId, ...signalInfo });
+            while (arr.length > 10) arr.shift();
+            recentIncomingMessageInfos.set(contactKey, arr);
+
+            // If modal is currently open for this message, refresh values immediately
+            const modal = document.getElementById('messageSignalModal');
+            if (modal && !modal.classList.contains('hidden') &&
+                modal.dataset.contactKey === contactKey &&
+                String(modal.dataset.messageId) === String(messageId)) {
+                document.getElementById('msgInfoRSSI').textContent = signalInfo.rssi;
+                document.getElementById('msgInfoSNR').textContent = signalInfo.snr;
+                document.getElementById('msgInfoDistance').textContent = signalInfo.distance;
+                document.getElementById('msgInfoTime').textContent = signalInfo.time;
+            }
+        }
+
+        async function captureIncomingMessageSignalInfo(contactKey, messageId) {
+            if (!charTX || !isBleConnected()) return;
+            const prefix = pubkeyPrefix(contactKey);
+            if (!prefix) return;
+
+            const items = histories.get(contactKey) || [];
+            const entry = items.find(m => m.id === messageId);
+            if (!entry) return;
+
+            try {
+                // force fresh CONINF snapshot for this incoming message
+                contactInfoCache.delete(prefix);
+                await commandQueue.enqueue(`AT+CONINF=${prefix}\r\n`, { timeout: 4000, retries: 1 });
+
+                const deadline = Date.now() + 1500;
+                let data = null;
+                while (Date.now() < deadline) {
+                    data = contactInfoCache.get(prefix);
+                    if (data) break;
+                    await new Promise(r => setTimeout(r, 50));
+                }
+
+                const info = buildSignalInfoFromConinfData(data || {}, entry.ts);
+                attachSignalInfoToMessage(contactKey, messageId, info);
+            } catch {
+                const info = {
+                    rssi: 'N/A',
+                    snr: 'N/A',
+                    distance: 'N/A',
+                    time: formatMessageTime(entry.ts),
+                    capturedAt: new Date().toISOString()
+                };
+                attachSignalInfoToMessage(contactKey, messageId, info);
+            }
+        }
+
+        async function showMessageSignalInfo(contactKey, messageId) {
+            const items = histories.get(contactKey) || [];
+            const entry = items.find(m => m.id === messageId);
+            if (!entry) return;
+
+            const modal = document.getElementById('messageSignalModal');
+            modal.dataset.contactKey = contactKey;
+            modal.dataset.messageId = String(messageId);
+
+            const signalInfo = entry.signalInfo;
+            document.getElementById('msgInfoRSSI').textContent = signalInfo?.rssi || 'N/A';
+            document.getElementById('msgInfoSNR').textContent = signalInfo?.snr || 'N/A';
+            document.getElementById('msgInfoDistance').textContent = signalInfo?.distance || 'N/A';
+            document.getElementById('msgInfoTime').textContent = signalInfo?.time || formatMessageTime(entry.ts);
+            document.getElementById('msgInfoContact').textContent = pubkeyPrefix(contactKey) || '—';
+            modal.classList.remove('hidden');
+        }
+
+        function closeMessageSignalModal() {
+            document.getElementById('messageSignalModal')?.classList.add('hidden');
+        }
+
+        function appendMessageToDom(entry, key) {
             const chatWindow = document.getElementById('chat-window');
             const div = document.createElement('div');
-            div.className = `msg ${type || 'sys'}`;
-            div.innerText = text;
+            div.className = `msg ${entry.type || 'sys'}`;
+
+            const main = document.createElement('div');
+            main.className = 'msg-main';
+            main.textContent = entry.text;
+
+            const time = document.createElement('div');
+            time.className = 'msg-time';
+            time.textContent = formatMessageTime(entry.ts);
+
+            div.appendChild(main);
+            div.appendChild(time);
+
+            // Only incoming messages are clickable for signal info.
+            const clickable = (entry.type === 'esp') && key && key !== SYSTEM_KEY;
+            if (clickable) {
+                div.classList.add('clickable');
+                div.title = 'Click to view RSSI/SNR/Distance';
+                div.addEventListener('click', () => showMessageSignalInfo(key, entry.id));
+            }
+
             chatWindow.appendChild(div);
             chatWindow.scrollTop = chatWindow.scrollHeight;
         }
@@ -2069,7 +2364,8 @@
             chatWindow.innerHTML = '';
             const items = histories.get(key) || [];
             for (const m of items) {
-                appendMessageToDom(m.text, m.type);
+                if (!m.id) m.id = ++messageIdCounter;
+                appendMessageToDom(m, key);
             }
         }
 
@@ -2557,13 +2853,26 @@
             const dot = document.getElementById('dot');
             const statusLabel = document.getElementById('statusLabel');
             const connectBtn = document.getElementById('connectBtn');
+            const connectIcon = document.getElementById('connectIcon');
             const connectLabel = document.getElementById('connectLabel');
             dot.classList.toggle('ok', connected);
             statusLabel.textContent = statusText || (connected ? 'Connected' : 'Disconnected');
             if (connected) {
-                connectLabel.textContent = 'Disconnect';
+                if (connectIcon) connectIcon.textContent = 'bluetooth_disabled';
+                if (connectBtn) {
+                    connectBtn.classList.add('icon-only');
+                    connectBtn.title = 'Disconnect';
+                    connectBtn.setAttribute('aria-label', 'Disconnect');
+                }
+                if (connectLabel) connectLabel.textContent = 'Disconnect';
             } else {
-                connectLabel.textContent = 'Connect';
+                if (connectIcon) connectIcon.textContent = 'bluetooth';
+                if (connectBtn) {
+                    connectBtn.classList.remove('icon-only');
+                    connectBtn.title = 'Connect';
+                    connectBtn.setAttribute('aria-label', 'Connect');
+                }
+                if (connectLabel) connectLabel.textContent = 'Connect';
             }
             document.getElementById('syncContactsBtn').classList.toggle('hidden', !connected);
             document.getElementById('addContactBtn').classList.toggle('hidden', !connected);
@@ -2941,6 +3250,7 @@
             contacts.clear();
             contactMacMap.clear();
             unreadCounts.clear();
+            recentIncomingMessageInfos.clear();
             contactOrderCounter = 0;
             // Keep only system history.
             for (const key of Array.from(histories.keys())) {
@@ -3278,7 +3588,10 @@
                         messageType = 'esp';
                     }
                     
-                    addMessage(messageText, messageType, routeKey);
+                    const messageId = addMessage(messageText, messageType, routeKey);
+                    if (messageType === 'esp' && messageId) {
+                        captureIncomingMessageSignalInfo(routeKey, messageId);
+                    }
                     
                     const isViewingChat = !document.getElementById('chat').classList.contains('hidden');
                     const isCurrent = isViewingChat && activeKey === routeKey;
@@ -3557,7 +3870,10 @@
                 if (routeKey) {
                     const isViewingChat = !document.getElementById('chat').classList.contains('hidden');
                     const isCurrent = isViewingChat && activeKey === routeKey;
-                    addMessage(trimmed, 'esp', routeKey);
+                    const messageId = addMessage(trimmed, 'esp', routeKey);
+                    if (messageId) {
+                        captureIncomingMessageSignalInfo(routeKey, messageId);
+                    }
                     if (!isCurrent) incrementUnread(routeKey);
                     return;
                 }
@@ -3578,7 +3894,10 @@
                     if (routeKey) {
                         const isViewingChat = !document.getElementById('chat').classList.contains('hidden');
                         const isCurrent = isViewingChat && activeKey === routeKey;
-                        addMessage(msgText || trimmed, 'esp', routeKey);
+                        const messageId = addMessage(msgText || trimmed, 'esp', routeKey);
+                        if (messageId) {
+                            captureIncomingMessageSignalInfo(routeKey, messageId);
+                        }
                         if (!isCurrent) incrementUnread(routeKey);
                         return;
                     }
@@ -4175,6 +4494,7 @@
                 pubKey:       get('PubKey'),
                 rssi:         get('RSSI'),
                 snr:          get('SNR'),
+                distance:     get('Distance'),
                 route:        get('Route'),
                 hops:         get('Hops'),
                 outPathLen:   get('OutPathLen'),
@@ -4741,7 +5061,18 @@
             const terminalWindow = document.getElementById('terminal-window');
             const msgEl = document.createElement('div');
             msgEl.className = `terminal-msg terminal-${type}`;
-            msgEl.textContent = text;
+
+            const ts = resolveHybridTimestamp(text);
+            const main = document.createElement('div');
+            main.className = 'terminal-msg-main';
+            main.textContent = text;
+
+            const time = document.createElement('div');
+            time.className = 'terminal-msg-time';
+            time.textContent = formatMessageTime(ts);
+
+            msgEl.appendChild(main);
+            msgEl.appendChild(time);
             terminalWindow.appendChild(msgEl);
             // Auto-scroll to bottom
             terminalWindow.scrollTop = terminalWindow.scrollHeight;
