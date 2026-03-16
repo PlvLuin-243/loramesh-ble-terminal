@@ -2092,6 +2092,7 @@
         let telemetryReceivedAt = 0;
         let telemetryInterval = null;
         let currentContactInfoPrefix = '';
+        let pendingContactTelemetryPrefix = '';
         let contactInfoData = {};
         let isContactInfoSyncing = false;
         // Per-contact info cache keyed by 12-char pubkey prefix
@@ -3708,6 +3709,55 @@
                 const value = trimmed.slice('+SYSSTATUS:'.length).trim();
                 const parts = value.split(',');
                 if (parts.length >= 7) {
+                    // Contact telemetry path: some firmware delivers +SYSSTATUS first,
+                    // then @prefix in a later BLE chunk. In that case the line is unprefixed.
+                    const targetPrefix = blePrefix || pendingContactTelemetryPrefix || (isContactInfoSyncing ? currentContactInfoPrefix : '');
+                    const routeKey = targetPrefix ? contactKeyByPrefix(targetPrefix) : null;
+
+                    if (routeKey) {
+                        const cObj = contacts.get(routeKey);
+                        if (cObj) {
+                            cObj.bat = parts[1].trim() + '%';
+                            cObj.rstTime = parts[2].trim();
+                            cObj.warnLastTime = parts[3].trim();
+                            cObj.noise = parts[6].trim();
+
+                            const unixTsContact = parseInt(parts[0]);
+                            if (!isNaN(unixTsContact) && unixTsContact > 0) {
+                                const d = new Date(unixTsContact * 1000);
+                                cObj.time = d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+                            } else {
+                                cObj.time = 'N/A';
+                            }
+
+                            contacts.set(routeKey, cObj);
+                            renderContacts();
+
+                            const sameContact = currentContactInfoPrefix &&
+                                (String(currentContactInfoPrefix).toLowerCase() === String(targetPrefix).toLowerCase() ||
+                                 pubkeyPrefix(currentContactInfoPrefix).toLowerCase() === pubkeyPrefix(targetPrefix).toLowerCase());
+
+                            if (sameContact) {
+                                document.getElementById('cTelBattery').textContent = cObj.bat || '—';
+                                document.getElementById('cTelNoise').textContent = cObj.noise || '—';
+                                document.getElementById('cTelTime').textContent = cObj.time || '—';
+                                document.getElementById('cTelRstTime').textContent = formatTimeFromTick(cObj.rstTime) || '—';
+                                document.getElementById('cTelWarnLastTime').textContent = formatTimeFromTick(cObj.warnLastTime) || '—';
+
+                                const sec = document.getElementById('contactTelemetrySection');
+                                if (sec) {
+                                    sec.classList.remove('syncing');
+                                    sec.classList.add('success');
+                                    setTimeout(() => sec.classList.remove('success'), 1000);
+                                }
+                                document.getElementById('syncContactTelemetryIcon')?.classList.remove('spin-anim');
+                            }
+                        }
+
+                        pendingContactTelemetryPrefix = '';
+                        return;
+                    }
+
                     deviceInfo.telemetry.battery = parts[1].trim() + '%';
                     deviceInfo.telemetry.rstTime = parts[2].trim();
                     deviceInfo.telemetry.warnLastTime = parts[3].trim();
@@ -4418,6 +4468,7 @@
             const sec = document.getElementById('contactTelemetrySection');
             if (sec) sec.classList.add('syncing');
             document.getElementById('syncContactTelemetryIcon')?.classList.add('spin-anim');
+            pendingContactTelemetryPrefix = currentContactInfoPrefix;
             
             try {
                 // Gửi lệnh xuống device lấy sysstatus của contact
@@ -4431,6 +4482,8 @@
                 }
                 document.getElementById('syncContactTelemetryIcon')?.classList.remove('spin-anim');
                 addMessage("Sync Error: " + err, "sys", SYSTEM_KEY);
+            } finally {
+                pendingContactTelemetryPrefix = '';
             }
         }
 
