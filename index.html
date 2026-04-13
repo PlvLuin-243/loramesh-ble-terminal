@@ -2592,7 +2592,8 @@
             const displayName = c.name || 'Unknown';
             const color = c.color || hashColor(routeKey || displayName);
             const prefix = pubkeyPrefix(routeKey) || '';
-            addMessage(text, type, CHANNELS_KEY, {
+            const displayText = formatChannelMessageForDisplay(text);
+            addMessage(displayText, type, CHANNELS_KEY, {
                 timestamp: ts || new Date(),
                 channelMeta: {
                     name: displayName,
@@ -2615,8 +2616,9 @@
             const deviceName = String(document.getElementById('infoNameInput')?.textContent || '').trim();
             const displayName = isDevice ? (deviceName || 'Device') : (normalizedPrefix || 'Unknown');
             const color = isDevice ? '#ff9800' : hashColor(displayName);
+            const displayText = formatChannelMessageForDisplay(text);
 
-            addMessage(text, type, CHANNELS_KEY, {
+            addMessage(displayText, type, CHANNELS_KEY, {
                 timestamp: ts || new Date(),
                 channelMeta: {
                     name: displayName,
@@ -3942,6 +3944,77 @@
             }
 
             return raw.toUpperCase();
+        }
+
+        function formatUtc7DateTime(rawValue) {
+            const s = String(rawValue ?? '').trim();
+            if (!s || s === '0') return 'N/A';
+
+            if (/^\d+$/.test(s)) {
+                const n = Number(s);
+                const ms = s.length > 10 ? n : n * 1000;
+                const d = new Date(ms);
+                if (!isNaN(d.getTime())) {
+                    return d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+                }
+            }
+
+            const d = new Date(s);
+            if (!isNaN(d.getTime())) {
+                return d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+            }
+
+            return s;
+        }
+
+        function formatChannelMessageForDisplay(text) {
+            const raw = String(text || '').trim();
+            if (raw.startsWith('+WARN BEGIN:')) {
+                const payload = raw.slice('+WARN BEGIN:'.length).trim();
+                const p = payload.split(',').map(v => v.trim());
+                const level = p[0] || 'N/A';
+                const time = formatUtc7DateTime(p[1] || '');
+                return [
+                    'WARN BEGIN:',
+                    `- Level: ${level}`,
+                    `- Time: ${time}`
+                ].join('\n');
+            }
+
+            if (raw.startsWith('+WARN END')) {
+                return 'WARN END';
+            }
+
+            if (!raw.startsWith('+SYSSTATUS:')) return raw;
+
+            const payload = raw.slice('+SYSSTATUS:'.length).trim();
+            const p = payload.split(',').map(v => v.trim());
+            if (p.length < 10) return raw;
+
+            const time = formatUtc7DateTime(p[0]);
+            const batRaw = p[1] || 'N/A';
+            const bat = /^\d+(?:\.\d+)?$/.test(batRaw) ? `${batRaw}%` : batRaw;
+            const rstTime = formatUtc7DateTime(p[2]);
+            const warnLastTime = formatUtc7DateTime(p[3]);
+            const rssi = p[4] || 'N/A';
+            const snr = p[5] || 'N/A';
+            const noise = p[6] || 'N/A';
+            const route = p[7] === '0' ? 'Flood' : (p[7] === '1' ? 'Direct' : (p[7] || 'N/A'));
+            const hop = p[8] || 'N/A';
+            const path = formatPathForDisplay(p[9] || '', 'N/A');
+
+            return [
+                `• Time: ${time}`,
+                `• BAT: ${bat}`,
+                `• RST_TIME: ${rstTime}`,
+                `• WARN_LAST_TIME: ${warnLastTime}`,
+                `• RSSI: ${rssi}`,
+                `• SNR: ${snr}`,
+                `• NOISE: ${noise}`,
+                `• ROUTE: ${route}`,
+                `• HOP: ${hop}`,
+                `• PATH: ${path}`
+            ].join('\n');
         }
 
         function computeHopsFromPath(pathValue) {
