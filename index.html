@@ -2002,6 +2002,18 @@
         const commandQueue = new CommandQueue();
 
         const SYSTEM_KEY = '__system__';
+        
+        /**
+         * Extract 12-char device prefix from full public key
+         * e.g. 'EAEE87A47BA330647A9748F86E19B5FB3F50EA209719DF80FC9350C433E98B70' -> 'EAEE87A47BA3'
+         */
+        function getDevicePrefix() {
+            if (deviceInfo.publicKey && deviceInfo.publicKey.length >= 12) {
+                return deviceInfo.publicKey.substring(0, 12).toUpperCase();
+            }
+            return null;
+        }
+        
         const contacts = new Map(); // key -> { name, pubkey, color, macAddress }
         const contactMacMap = new Map(); // contactKey -> macAddress (for AT+CONINF= commands)
         const histories = new Map(); // key -> Array<{ text, type }>
@@ -2845,13 +2857,13 @@
 
                 // For info section changes that affect routing (Network Key, Channel), sync both
                 if (paramCommand === 'NWKKEY' || paramCommand === 'LRCH') {
-                    requestInfoSection();
+                    await requestInfoSection();
                     setTimeout(() => requestLoRaSection(), 400);
                 } else {
-                    if (section === 'info') requestInfoSection();
-                    else if (section === 'lora') requestLoRaSection();
-                    else if (section === 'gps') requestGPSSection();
-                    else if (section === 'contactInfo') requestContactInfoSection();
+                    if (section === 'info') await requestInfoSection();
+                    else if (section === 'lora') await requestLoRaSection();
+                    else if (section === 'gps') await requestGPSSection();
+                    else if (section === 'contactInfo') await requestContactInfoSection();
                 }
 
                 closeEditParamModal();
@@ -3536,7 +3548,18 @@
                     messageText = formattedError;
                 }
                 
-                // Find contact with matching prefix
+                // FIRST: Check if this prefix matches the DEVICE prefix (not a contact)
+                const devicePrefix = getDevicePrefix();
+                const isDeviceResponse = devicePrefix && incomingPrefix.toUpperCase() === devicePrefix.toUpperCase();
+                
+                if (isDeviceResponse) {
+                    // Route to device info handler instead of contact
+                    console.log("[HANDLE] Prefix matches device, routing to device info: prefix=", incomingPrefix, "message=", messageText.substring(0, 60));
+                    handleDeviceInfoResponse(messageText, incomingPrefix);
+                    return;
+                }
+                
+                // SECOND: Try to find contact with matching prefix
                 const routeKey = contactKeyByPrefix(incomingPrefix);
                 if (routeKey) {
                     const contactName = contacts.get(routeKey) ? contacts.get(routeKey).name : 'Unknown';
@@ -3630,9 +3653,18 @@
                     }
                 } else {
                     console.log("[HANDLE] No matching contact found for prefix:", incomingPrefix, "adding to system log");
-                    // No matching contact found, add to system or active chat
-                    let messageType = isSendError700 ? 'sendError' : (isErrorMsg ? 'error' : 'esp');
-                    addMessage(messageText, messageType, activeKey || SYSTEM_KEY);
+                    // Try to route to device info if it's a device response without @prefix match
+                    if (messageText.startsWith('+SYSSTATUS:') || messageText.startsWith('+SYSID:') || 
+                        messageText.startsWith('+SYSPUBK:') || messageText.startsWith('+NWKKEY:') ||
+                        messageText.startsWith('+LRCH:') || messageText.startsWith('+LRCFG:') ||
+                        messageText.startsWith('+GPSEN:')) {
+                        console.log("[HANDLE] Device info-like response without contact match, routing to device info");
+                        handleDeviceInfoResponse(messageText, incomingPrefix);
+                    } else {
+                        // No matching contact found, add to system or active chat
+                        let messageType = isSendError700 ? 'sendError' : (isErrorMsg ? 'error' : 'esp');
+                        addMessage(messageText, messageType, activeKey || SYSTEM_KEY);
+                    }
                 }
                 return;
             }
@@ -4709,10 +4741,24 @@
 
                 // IMPORTANT: use shared command queue so all commands are serialized.
                 // This avoids interleaving writes/responses between retry logic and normal AT flow.
+                let queuedResponse = '';
                 try {
-                    await commandQueue.enqueue(cmd, { timeout: timeoutMs, retries: 0 });
+                    queuedResponse = await commandQueue.enqueue(cmd, { timeout: timeoutMs, retries: 0 });
                 } catch (e) {
                     console.warn('[RETRY] Queue send failed on attempt', attempt + 1, e?.message || e);
+                }
+
+                // IMPORTANT: CommandQueue clears lastCommandResponse/lastCommandResponseTime
+                // after it resolves. Restore a snapshot from the queue response so confirmFn
+                // can reliably detect success instead of false timeout/retry.
+                if (queuedResponse && queuedResponse.trim()) {
+                    lastCommandResponse = queuedResponse;
+                    lastCommandResponseTime = Date.now();
+
+                    if (confirmFn()) {
+                        console.log('[RETRY] Confirmed from queue response on attempt', attempt + 1, 'response:', JSON.stringify(queuedResponse));
+                        return true;
+                    }
                 }
 
                 const deadline = Date.now() + timeoutMs;
