@@ -1,0 +1,6 @@
+{
+  "appId": "com.meshphyr.app",
+  "appName": "MeshPhyr",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}

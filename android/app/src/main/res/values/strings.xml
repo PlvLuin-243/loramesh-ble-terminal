@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MeshPhyr</string>
+    <string name="title_activity_main">MeshPhyr</string>
+    <string name="package_name">meshphyr.app</string>
+    <string name="custom_url_scheme">meshphyr.app</string>
+</resources>
