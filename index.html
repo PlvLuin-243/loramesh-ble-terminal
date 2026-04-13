@@ -837,6 +837,37 @@
 
         .btn-send .material-icons { font-size: 22px; }
 
+        .map-legend {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(0,0,0,0.15);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 12px;
+            color: #222;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            line-height: 1.4;
+        }
+
+        .map-legend .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .map-legend .legend-item + .legend-item {
+            margin-top: 4px;
+        }
+
+        .map-legend .legend-line {
+            width: 20px;
+            height: 0;
+            border-top-width: 3px;
+            border-top-style: solid;
+            border-radius: 2px;
+            flex: 0 0 auto;
+        }
+
         /* Terminal window styles */
         #terminal-window {
             flex: 1;
@@ -3473,93 +3504,89 @@
                                 bounds.extend([lat, lon]);
                                 hasValidMarkers = true;
                                 
-                                // Draw route path based on hop and outPath
+                                // Draw route paths (OUT and IN)
                                 if (devLat !== null && devLon !== null) {
-                                    const pathPoints = [[devLat, devLon]]; // Start from device
-                                    const unknownIntermediates = []; // Track unknown hop prefixes
-
                                     const info = contactInfoCache.get(pubkeyPrefix(pk)) || {};
-                                    
-                                    // Parse hop and outPath to build the path
-                                    const hop = parseInt((c.hops ?? info.hops ?? '').toString().trim(), 10) || 0;
-                                    const outPathRaw = (c.outPath ?? info.outPath ?? '').toString().trim();
-                                    const outPath = /^(unknown|\(unknown\)|zero-hop|\(zero-hop\)|n\/a)$/i.test(outPathRaw)
-                                        ? ''
-                                        : outPathRaw;
-                                    
-                                    // Build intermediate waypoints based on hop
-                                    if (hop > 0 && outPath) {
-                                        // For each hop level, get 2 characters from outPath and find matching contact
-                                        for (let h = 0; h < hop; h++) {
-                                            const startIdx = h * 2;
-                                            const endIdx = startIdx + 2;
-                                            const prefix = outPath.substring(startIdx, endIdx).toLowerCase();
-                                            
-                                            if (prefix.length === 2) {
-                                                // Find contact with matching pubkey prefix
+                                    const routePointsKey = (points) =>
+                                        (points || [])
+                                            .map(pt => `${Number(pt[0]).toFixed(6)},${Number(pt[1]).toFixed(6)}`)
+                                            .join('|');
+
+                                    const parseHopCount = (rawHop, rawPath) => {
+                                        const hop = parseInt(String(rawHop ?? '').trim(), 10);
+                                        if (!isNaN(hop) && hop >= 0) return hop;
+                                        return parseInt(computeHopsFromPath(rawPath), 10) || 0;
+                                    };
+
+                                    const buildRoutePoints = (hopCount, pathRaw) => {
+                                        const points = [[devLat, devLon]];
+                                        const normalizedPath = String(pathRaw || '').trim();
+                                        const isUnknownPath = /^(unknown|\(unknown\)|unknow|\(unknow\)|n\/a)$/i.test(normalizedPath);
+                                        const isZeroHop = /^(zero-hop|\(zero-hop\)|0)$/i.test(normalizedPath);
+
+                                        if (isUnknownPath) return null;
+
+                                        if (hopCount > 0 && !isZeroHop && normalizedPath) {
+                                            for (let h = 0; h < hopCount; h++) {
+                                                const startIdx = h * 2;
+                                                const hopPrefix2 = normalizedPath.substring(startIdx, startIdx + 2).toLowerCase();
+                                                if (hopPrefix2.length !== 2) return null;
+
                                                 let foundIntermediate = false;
                                                 for (const [contactPk, contactData] of contacts) {
                                                     const contactPrefix = pubkeyPrefix(contactPk).toLowerCase();
-                                                    if (contactPrefix && contactPrefix.startsWith(prefix) && contactData.gps && contactData.gps !== 'N/A') {
+                                                    if (contactPrefix && contactPrefix.startsWith(hopPrefix2) && contactData.gps && contactData.gps !== 'N/A') {
                                                         const gpsMatches = contactData.gps.match(/(-?\d+(?:\.\d+)?)[^\d-]+(-?\d+(?:\.\d+)?)/);
                                                         if (gpsMatches && gpsMatches.length >= 3) {
                                                             const intermediateLat = parseFloat(gpsMatches[1]);
                                                             const intermediateLon = parseFloat(gpsMatches[2]);
                                                             if (!isNaN(intermediateLat) && !isNaN(intermediateLon) && (intermediateLat !== 0 || intermediateLon !== 0)) {
-                                                                pathPoints.push([intermediateLat, intermediateLon]);
+                                                                points.push([intermediateLat, intermediateLon]);
                                                                 foundIntermediate = true;
                                                                 break;
                                                             }
                                                         }
                                                     }
                                                 }
-                                                if (!foundIntermediate) {
-                                                    // Track unknown intermediate for "???" marker
-                                                    unknownIntermediates.push(h);
-                                                }
+
+                                                // If any hop is unknown, do not draw this route
+                                                if (!foundIntermediate) return null;
                                             }
                                         }
+
+                                        points.push([lat, lon]);
+                                        return points;
+                                    };
+
+                                    // OUT path: orange solid
+                                    const outHop = parseHopCount(c.hops ?? info.hops, c.outPath ?? info.outPath);
+                                    const outPoints = buildRoutePoints(outHop, c.outPath ?? info.outPath);
+                                    const outKey = outPoints ? routePointsKey(outPoints) : '';
+                                    if (outPoints) {
+                                        const outPolyline = L.polyline(outPoints, {
+                                            color: '#ff9800',
+                                            weight: 3,
+                                            opacity: 0.9,
+                                            lineCap: 'round',
+                                            lineJoin: 'round'
+                                        }).addTo(worldMap);
+                                        mapPolylines.push(outPolyline);
                                     }
-                                    
-                                    // Add final destination
-                                    pathPoints.push([lat, lon]);
-                                    
-                                    // Draw polyline from device through intermediates to contact
-                                    const polyline = L.polyline(pathPoints, {
-                                        color: '#000000',
-                                        weight: 2,
-                                        opacity: 0.6,
-                                        dashArray: '5, 5',
-                                        lineCap: 'round',
-                                        lineJoin: 'round'
-                                    }).addTo(worldMap);
-                                    mapPolylines.push(polyline);
-                                    
-                                    // If there are unknown intermediates, add markers showing "???" in middle of route
-                                    if (unknownIntermediates.length > 0) {
-                                        for (let idx of unknownIntermediates) {
-                                            // Calculate midpoint along the route for "???" marker
-                                            const numSegments = pathPoints.length - 1;
-                                            if (numSegments > 0 && idx < numSegments) {
-                                                const startPt = pathPoints[idx];
-                                                const endPt = pathPoints[idx + 1];
-                                                const midLat = (startPt[0] + endPt[0]) / 2;
-                                                const midLon = (startPt[1] + endPt[1]) / 2;
-                                                
-                                                // Add "???" popup marker at midpoint
-                                                const unknownHopMarker = L.circleMarker([midLat, midLon], {
-                                                    radius: 6,
-                                                    fillColor: '#FF9800',
-                                                    color: '#FF6F00',
-                                                    weight: 2,
-                                                    opacity: 1,
-                                                    fillOpacity: 0.8
-                                                }).bindPopup('??? (Unknown intermediate hop)', { autoClose: false })
-                                                  .bindTooltip('Unknown intermediate', { direction: 'right' })
-                                                  .addTo(worldMap);
-                                                mapHopMarkers.push(unknownHopMarker);
-                                            }
-                                        }
+
+                                    // IN path: blue solid
+                                    const inHop = parseHopCount(c.inHops ?? info.inHops, c.inPath ?? info.inPath);
+                                    const inPoints = buildRoutePoints(inHop, c.inPath ?? info.inPath);
+                                    const inKey = inPoints ? routePointsKey(inPoints) : '';
+                                    // If IN and OUT are identical, keep only orange route
+                                    if (inPoints && inKey !== outKey) {
+                                        const inPolyline = L.polyline(inPoints, {
+                                            color: '#1e88e5',
+                                            weight: 3,
+                                            opacity: 0.9,
+                                            lineCap: 'round',
+                                            lineJoin: 'round'
+                                        }).addTo(worldMap);
+                                        mapPolylines.push(inPolyline);
                                     }
                                 }
                             }
@@ -3611,6 +3638,17 @@
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         attribution: '&copy; OpenStreetMap contributors'
                     }).addTo(worldMap);
+
+                    const legend = L.control({ position: 'bottomleft' });
+                    legend.onAdd = function () {
+                        const div = L.DomUtil.create('div', 'map-legend');
+                        div.innerHTML = `
+                            <div class="legend-item"><span class="legend-line" style="border-top-color:#ff9800"></span><span>Out Path</span></div>
+                            <div class="legend-item"><span class="legend-line" style="border-top-color:#1e88e5"></span><span>In Path</span></div>
+                        `;
+                        return div;
+                    };
+                    legend.addTo(worldMap);
                 } else {
                     worldMap.invalidateSize();
                 }
