@@ -44,13 +44,13 @@
         }
 
         header {
-            background-color: #2f7faa;
-            background-image:
-                linear-gradient(rgba(47, 127, 170, 0.98), rgba(47, 127, 170, 0.98)),
-                url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='140' viewBox='0 0 240 140'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='1' stroke-width='6.6'%3E%3Cline x1='20' y1='20' x2='90' y2='40'/%3E%3Cline x1='90' y1='40' x2='150' y2='25'/%3E%3Cline x1='150' y1='25' x2='215' y2='55'/%3E%3Cline x1='40' y1='95' x2='90' y2='40'/%3E%3Cline x1='40' y1='95' x2='130' y2='110'/%3E%3Cline x1='130' y1='110' x2='190' y2='90'/%3E%3Cline x1='190' y1='90' x2='215' y2='55'/%3E%3Cline x1='90' y1='40' x2='130' y2='110'/%3E%3Cline x1='150' y1='25' x2='190' y2='90'/%3E%3C/g%3E%3Cg fill='%23ffffff' fill-opacity='.98'%3E%3Ccircle cx='20' cy='20' r='10.8'/%3E%3Ccircle cx='90' cy='40' r='10.8'/%3E%3Ccircle cx='150' cy='25' r='10.8'/%3E%3Ccircle cx='215' cy='55' r='10.8'/%3E%3Ccircle cx='40' cy='95' r='10.8'/%3E%3Ccircle cx='130' cy='110' r='10.8'/%3E%3Ccircle cx='190' cy='90' r='10.8'/%3E%3C/g%3E%3Cg fill='%2300f5ff' fill-opacity='.72'%3E%3Ccircle cx='20' cy='20' r='15'/%3E%3Ccircle cx='90' cy='40' r='15'/%3E%3Ccircle cx='150' cy='25' r='15'/%3E%3Ccircle cx='215' cy='55' r='15'/%3E%3Ccircle cx='40' cy='95' r='15'/%3E%3Ccircle cx='130' cy='110' r='15'/%3E%3Ccircle cx='190' cy='90' r='15'/%3E%3C/g%3E%3C/svg%3E");
-            background-size: cover, 240px 140px;
-            background-repeat: no-repeat, repeat;
-            background-position: center, center;
+            position: relative;
+            overflow: hidden;
+            background-color: #04090d;
+            background-image: radial-gradient(circle at 50% 0%, rgba(0, 180, 220, 0.08), rgba(0,0,0,0) 60%);
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
             color: #f4fcff;
             padding: calc(12px + env(safe-area-inset-top)) 15px 12px;
             display: flex;
@@ -61,6 +61,31 @@
                 inset 0 -1px 0 rgba(255,255,255,0.45),
                 inset 0 0 26px rgba(255,255,255,0.22);
             gap: 12px;
+        }
+
+        header::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: none;
+        }
+
+        header::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1400' height='240' viewBox='0 0 1400 240'%3E%3Cg fill='none' stroke='%2300e9ff' stroke-opacity='.90' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='30,170 30,70 90,130 150,70 210,170'/%3E%3Cpolyline points='250,132 285,95 340,95 375,125 340,155 285,155 250,132 340,132'/%3E%3Cpolyline points='575,95 485,95 450,125 515,125 575,125 600,155 520,170 440,156'/%3E%3Cpolyline points='620,70 620,170'/%3E%3Cpolyline points='620,130 675,98 730,130 730,170'/%3E%3Cpolyline points='780,170 780,70 860,70 920,104 860,138 780,138'/%3E%3Cpolyline points='970,70 970,170'/%3E%3Cpolyline points='970,130 1025,98 1080,130 1080,170'/%3E%3Cpolyline points='1130,98 1180,145 1230,98'/%3E%3Cpolyline points='1180,145 1180,196'/%3E%3Cpolyline points='1285,170 1285,100'/%3E%3Cpolyline points='1285,130 1335,100 1370,120'/%3E%3Cline x1='210' y1='170' x2='250' y2='132'/%3E%3Cline x1='375' y1='125' x2='450' y2='125'/%3E%3Cline x1='600' y1='155' x2='620' y2='130'/%3E%3Cline x1='730' y1='130' x2='780' y2='138'/%3E%3Cline x1='920' y1='104' x2='970' y2='130'/%3E%3Cline x1='1080' y1='130' x2='1130' y2='98'/%3E%3Cline x1='1230' y1='98' x2='1285' y2='130'/%3E%3C/g%3E%3Cg fill='%2300e9ff' fill-opacity='.95'%3E%3Ccircle cx='30' cy='170' r='2.9'/%3E%3Ccircle cx='30' cy='70' r='2.9'/%3E%3Ccircle cx='90' cy='130' r='2.9'/%3E%3Ccircle cx='150' cy='70' r='2.9'/%3E%3Ccircle cx='210' cy='170' r='2.9'/%3E%3Ccircle cx='250' cy='132' r='2.9'/%3E%3Ccircle cx='285' cy='95' r='2.9'/%3E%3Ccircle cx='340' cy='95' r='2.9'/%3E%3Ccircle cx='375' cy='125' r='2.9'/%3E%3Ccircle cx='340' cy='155' r='2.9'/%3E%3Ccircle cx='285' cy='155' r='2.9'/%3E%3Ccircle cx='450' cy='125' r='2.9'/%3E%3Ccircle cx='485' cy='95' r='2.9'/%3E%3Ccircle cx='515' cy='125' r='2.9'/%3E%3Ccircle cx='575' cy='125' r='2.9'/%3E%3Ccircle cx='600' cy='155' r='2.9'/%3E%3Ccircle cx='520' cy='170' r='2.9'/%3E%3Ccircle cx='440' cy='156' r='2.9'/%3E%3Ccircle cx='620' cy='70' r='2.9'/%3E%3Ccircle cx='620' cy='170' r='2.9'/%3E%3Ccircle cx='675' cy='98' r='2.9'/%3E%3Ccircle cx='730' cy='130' r='2.9'/%3E%3Ccircle cx='730' cy='170' r='2.9'/%3E%3Ccircle cx='780' cy='170' r='2.9'/%3E%3Ccircle cx='780' cy='70' r='2.9'/%3E%3Ccircle cx='860' cy='70' r='2.9'/%3E%3Ccircle cx='920' cy='104' r='2.9'/%3E%3Ccircle cx='860' cy='138' r='2.9'/%3E%3Ccircle cx='780' cy='138' r='2.9'/%3E%3Ccircle cx='970' cy='70' r='2.9'/%3E%3Ccircle cx='970' cy='170' r='2.9'/%3E%3Ccircle cx='1025' cy='98' r='2.9'/%3E%3Ccircle cx='1080' cy='130' r='2.9'/%3E%3Ccircle cx='1080' cy='170' r='2.9'/%3E%3Ccircle cx='1130' cy='98' r='2.9'/%3E%3Ccircle cx='1180' cy='145' r='2.9'/%3E%3Ccircle cx='1230' cy='98' r='2.9'/%3E%3Ccircle cx='1180' cy='196' r='2.9'/%3E%3Ccircle cx='1285' cy='170' r='2.9'/%3E%3Ccircle cx='1285' cy='100' r='2.9'/%3E%3Ccircle cx='1335' cy='100' r='2.9'/%3E%3Ccircle cx='1370' cy='120' r='2.9'/%3E%3C/g%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-size: 100% 100%;
+            background-position: center;
+            opacity: 0.96;
+        }
+
+        header > * {
+            position: relative;
+            z-index: 1;
         }
 
         .left {
@@ -3094,8 +3119,8 @@
                 || /@/.test(raw);
         }
 
-        function addChannelFeedMessage(routeKey, text, type = 'esp', ts) {
-            if (!isAllowedChannelsResponse(text)) return;
+        function addChannelFeedMessage(routeKey, text, type = 'esp', ts, force = false) {
+            if (!force && !isAllowedChannelsResponse(text)) return;
             const c = contacts.get(routeKey) || {};
             const displayName = c.name || 'Unknown';
             const color = c.color || hashColor(routeKey || displayName);
@@ -3111,11 +3136,11 @@
             });
         }
 
-        function addChannelFeedMessageByPrefix(prefix, text, type = 'esp', ts) {
-            if (!isAllowedChannelsResponse(text)) return;
+        function addChannelFeedMessageByPrefix(prefix, text, type = 'esp', ts, force = false) {
+            if (!force && !isAllowedChannelsResponse(text)) return;
             const routeKey = contactKeyByPrefix(prefix);
             if (routeKey) {
-                addChannelFeedMessage(routeKey, text, type, ts);
+                addChannelFeedMessage(routeKey, text, type, ts, force);
                 return;
             }
 
@@ -4783,7 +4808,7 @@
                 const isDeviceResponse = devicePrefix && incomingPrefix.toUpperCase() === devicePrefix.toUpperCase();
                 
                 if (isDeviceResponse) {
-                    addChannelFeedMessageByPrefix(incomingPrefix, messageText, isErrorMsg ? 'error' : 'esp', new Date());
+                    addChannelFeedMessageByPrefix(incomingPrefix, messageText, isErrorMsg ? 'error' : 'esp', new Date(), true);
                     // Route to device info handler instead of contact
                     console.log("[HANDLE] Prefix matches device, routing to device info: prefix=", incomingPrefix, "message=", messageText.substring(0, 60));
                     handleDeviceInfoResponse(messageText, incomingPrefix);
@@ -4886,7 +4911,7 @@
 
                     // Do not push path-control responses into chat/unread counters
                     if (isPathControlResponse) {
-                        addChannelFeedMessage(routeKey, messageText, 'esp', new Date());
+                        addChannelFeedMessage(routeKey, messageText, 'esp', new Date(), true);
                         return;
                     }
 
@@ -4905,7 +4930,7 @@
                     }
                     
                     const messageId = addMessage(messageText, messageType, routeKey);
-                    addChannelFeedMessage(routeKey, messageText, messageType, new Date());
+                    addChannelFeedMessage(routeKey, messageText, messageType, new Date(), true);
                     if (messageType === 'esp' && messageId) {
                         captureIncomingMessageSignalInfo(routeKey, messageId);
                     }
@@ -4919,7 +4944,7 @@
                 } else {
                     console.log("[HANDLE] No matching contact found for prefix:", incomingPrefix, "adding to system log");
                     const unknownType = isSendError700 ? 'sendError' : (isErrorMsg ? 'error' : 'esp');
-                    addChannelFeedMessageByPrefix(incomingPrefix, messageText, unknownType, new Date());
+                    addChannelFeedMessageByPrefix(incomingPrefix, messageText, unknownType, new Date(), true);
                     // Try to route to device info if it's a device response without @prefix match
                     if (messageText.startsWith('+SYSSTATUS:') || messageText.startsWith('+SYSID:') || 
                         messageText.startsWith('+SYSPUBK:') || messageText.startsWith('+NWKKEY:') ||
@@ -5266,7 +5291,7 @@
                     const isViewingChat = !document.getElementById('chat').classList.contains('hidden');
                     const isCurrent = isViewingChat && activeKey === routeKey;
                     const messageId = addMessage(trimmed, 'esp', routeKey);
-                    addChannelFeedMessage(routeKey, trimmed, 'esp', new Date());
+                    addChannelFeedMessage(routeKey, trimmed, 'esp', new Date(), true);
                     if (messageId) {
                         captureIncomingMessageSignalInfo(routeKey, messageId);
                     }
@@ -5274,7 +5299,7 @@
                     return;
                 }
                 // BLE prefix present but no matching contact → show as plain text
-                addChannelFeedMessageByPrefix(blePrefix, trimmed, 'esp', new Date());
+                addChannelFeedMessageByPrefix(blePrefix, trimmed, 'esp', new Date(), true);
                 addMessage(trimmed, 'esp', activeKey || SYSTEM_KEY);
                 return;
             }
@@ -5292,7 +5317,7 @@
                         const isViewingChat = !document.getElementById('chat').classList.contains('hidden');
                         const isCurrent = isViewingChat && activeKey === routeKey;
                         const messageId = addMessage(msgText || trimmed, 'esp', routeKey);
-                        addChannelFeedMessage(routeKey, msgText || trimmed, 'esp', new Date());
+                        addChannelFeedMessage(routeKey, msgText || trimmed, 'esp', new Date(), true);
                         if (messageId) {
                             captureIncomingMessageSignalInfo(routeKey, messageId);
                         }
@@ -5301,7 +5326,7 @@
                     }
                     // Strip @prefix even if contact not found
                     if (msgText) {
-                        addChannelFeedMessageByPrefix(potentialPrefix, msgText, 'esp', new Date());
+                        addChannelFeedMessageByPrefix(potentialPrefix, msgText, 'esp', new Date(), true);
                         addMessage(msgText, 'esp', activeKey || SYSTEM_KEY);
                         return;
                     }
