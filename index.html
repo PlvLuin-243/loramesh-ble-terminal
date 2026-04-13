@@ -277,6 +277,11 @@
         .settings-list .field { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
         .field-label { color: rgba(0,0,0,0.58); font-size: 14px; min-width: 100px; }
         .field-with-item { flex: 1; }
+        .settings-list .field > .item,
+        .settings-list .field > .field-with-item {
+            flex: 1;
+            min-width: 0;
+        }
         .settings-list .item {
             padding: 10px 12px;
             background: #f6f6f6;
@@ -301,6 +306,15 @@
             background: #ffebee;
         }
         .settings-list .value { font-weight: 600; color: #111; font-size: 14px; flex: 1; text-align: left; padding-left: 12px; }
+        .settings-list .item.field-editable .value {
+            min-width: 0;
+            width: 100%;
+            display: block;
+        }
+        .settings-list .item.field-editable .edit-icon {
+            margin-left: auto;
+            flex-shrink: 0;
+        }
         .editable {
             cursor: pointer;
             padding: 4px 8px;
@@ -1478,8 +1492,8 @@
                 <div class="settings-list">
                     <div class="field">
                         <div class="field-label">Name</div>
-                        <div class="item">
-                            <span class="value field-editable" id="infoNameInput"></span>
+                        <div class="item field-editable">
+                            <span class="value" id="infoNameInput"></span>
                             <i class="material-icons edit-icon" onclick="openEditParamModal('Name', 'SYSID', document.getElementById('infoNameInput').textContent, 'infoNameInput')" title="Edit Name">edit</i>
                         </div>
                     </div>
@@ -1493,15 +1507,15 @@
                     </div>
                     <div class="field">
                         <div class="field-label">Network key</div>
-                        <div class="item">
-                            <span class="value field-editable" id="infoNetworkKeyInput"></span>
+                        <div class="item field-editable">
+                            <span class="value" id="infoNetworkKeyInput"></span>
                             <i class="material-icons edit-icon" onclick="openEditParamModal('Network Key', 'NWKKEY', document.getElementById('infoNetworkKeyInput').textContent, 'infoNetworkKeyInput')" title="Edit Network Key">edit</i>
                         </div>
                     </div>
                     <div class="field">
                         <div class="field-label">Channel</div>
-                        <div class="item">
-                            <span class="value field-editable" id="infoChannelInput"></span>
+                        <div class="item field-editable">
+                            <span class="value" id="infoChannelInput"></span>
                             <i class="material-icons edit-icon" onclick="openEditParamModal('Channel', 'LRCH', document.getElementById('infoChannelInput').textContent, 'infoChannelInput')" title="Edit Channel">edit</i>
                         </div>
                     </div>
@@ -1520,22 +1534,22 @@
                 <div class="settings-list">
                     <div class="field">
                         <div class="field-label">Frequency</div>
-                        <div class="item">
-                            <span class="value field-editable" id="loraFreqInput"></span>
+                        <div class="item field-editable">
+                            <span class="value" id="loraFreqInput"></span>
                             <i class="material-icons edit-icon" onclick="openEditParamModal('Frequency', 'LRFQ', document.getElementById('loraFreqInput').textContent, 'loraFreqInput')" title="Edit Frequency">edit</i>
                         </div>
                     </div>
                     <div class="field">
                         <div class="field-label">Bandwidth</div>
-                        <div class="item">
-                            <span class="value field-editable" id="loraBWInput"></span>
+                        <div class="item field-editable">
+                            <span class="value" id="loraBWInput"></span>
                             <i class="material-icons edit-icon" onclick="openEditParamModal('Bandwidth', 'LRBW', document.getElementById('loraBWInput').textContent, 'loraBWInput')" title="Edit Bandwidth">edit</i>
                         </div>
                     </div>
                     <div class="field">
                         <div class="field-label">Spreading factor</div>
-                        <div class="item">
-                            <span class="value field-editable" id="loraSFInput"></span>
+                        <div class="item field-editable">
+                            <span class="value" id="loraSFInput"></span>
                             <i class="material-icons edit-icon" onclick="openEditParamModal('Spreading Factor', 'LRSF', document.getElementById('loraSFInput').textContent, 'loraSFInput')" title="Edit Spreading Factor">edit</i>
                         </div>
                     </div>
@@ -1545,8 +1559,8 @@
                     </div>
                     <div class="field">
                         <div class="field-label">TX Power</div>
-                        <div class="item">
-                            <span class="value field-editable" id="loraTXInput"></span>
+                        <div class="item field-editable">
+                            <span class="value" id="loraTXInput"></span>
                             <i class="material-icons edit-icon" onclick="openEditParamModal('TX Power', 'LRTXP', document.getElementById('loraTXInput').textContent, 'loraTXInput')" title="Edit TX Power">edit</i>
                         </div>
                     </div>
@@ -1561,8 +1575,8 @@
                 <div class="settings-list">
                     <div class="field">
                         <div class="field-label">Status</div>
-                        <div class="item">
-                            <span class="value field-editable" id="gpsStatusSelect"></span>
+                        <div class="item field-editable">
+                            <span class="value" id="gpsStatusSelect"></span>
                             <i class="material-icons edit-icon" onclick="openEditParamModal('GPS Status', 'GPSEN', document.getElementById('gpsStatusSelect').textContent, 'gpsStatusSelect')" title="Edit GPS Status">edit</i>
                         </div>
                     </div>
@@ -1576,8 +1590,8 @@
                     </div>
                     <div class="field">
                         <div class="field-label">Location</div>
-                        <div class="item">
-                            <span class="value field-editable" id="gpsLocation">N/A</span>
+                        <div class="item field-editable">
+                            <span class="value" id="gpsLocation">N/A</span>
                             <i class="material-icons edit-icon" onclick="openEditGPSLocationModal()" title="Edit GPS Location">edit</i>
                         </div>
                     </div>
@@ -1604,7 +1618,10 @@
                     </div>
                     <div class="field">
                         <div class="field-label">Time</div>
-                        <div class="item"><div class="value" id="telemetryTime">N/A</div></div>
+                        <div class="item">
+                            <div class="value" id="telemetryTime">N/A</div>
+                            <button class="btn-icon" style="width: 28px; height: 28px; border-color: #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" onclick="syncTelemetryServerTime()" type="button" title="Sync server time to device"><i id="syncTelemetryTimeIcon" class="material-icons" style="font-size: 16px;">schedule</i></button>
+                        </div>
                     </div>
                     <div class="field">
                         <div class="field-label">RST Time</div>
@@ -1778,7 +1795,10 @@
                     </div>
                     <div class="field">
                         <div class="field-label">Time</div>
-                        <div class="item"><div class="value" id="cTelTime">—</div></div>
+                        <div class="item">
+                            <div class="value" id="cTelTime">—</div>
+                            <button class="btn-icon" style="width: 28px; height: 28px; border-color: #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" onclick="syncContactTelemetryTime()" type="button" title="Sync server time to this contact"><i id="syncContactTimeIcon" class="material-icons" style="font-size: 16px;">schedule</i></button>
+                        </div>
                     </div>
                     <div class="field">
                         <div class="field-label">RST Time</div>
@@ -5245,6 +5265,36 @@
             }
         }
 
+        async function syncContactTelemetryTime() {
+            if (!charTX || !isBleConnected()) {
+                showErrorNotification('Not connected to device');
+                return;
+            }
+            if (!currentContactInfoPrefix) {
+                showErrorNotification('No contact selected');
+                return;
+            }
+
+            const icon = document.getElementById('syncContactTimeIcon');
+            icon?.classList.add('spin-anim');
+
+            try {
+                const timestamp = Math.floor(Date.now() / 1000);
+                const cmd = `AT+SYSSTIME=${timestamp}@${currentContactInfoPrefix}\r\n`;
+                const response = await commandQueue.enqueue(cmd, { timeout: 8000, retries: 0 });
+                const respText = String(response || '').toUpperCase();
+                if (respText.includes('ERROR')) {
+                    throw new Error('Remote device rejected SYSSTIME command');
+                }
+
+                await requestContactTelemetry();
+            } catch (e) {
+                showErrorNotification(`Failed to sync contact time: ${e.message || e}`);
+            } finally {
+                icon?.classList.remove('spin-anim');
+            }
+        }
+
         async function syncContactInPath() {
             if (!charTX || !isBleConnected()) {
                 showErrorNotification('Not connected to device');
@@ -5953,6 +6003,31 @@
             }
             // Update display after sending
             setTimeout(() => populateSettings(), 500);
+        }
+
+        async function syncTelemetryServerTime() {
+            if (!charTX || !isBleConnected()) {
+                showErrorNotification('Not connected to device');
+                return;
+            }
+
+            const icon = document.getElementById('syncTelemetryTimeIcon');
+            icon?.classList.add('spin-anim');
+
+            try {
+                const timestamp = Math.floor(Date.now() / 1000);
+                const response = await commandQueue.enqueue(`AT+SYSSTIME=${timestamp}\r\n`, { timeout: 3000, retries: 1 });
+                const respText = String(response || '').toUpperCase();
+                if (respText.includes('ERROR')) {
+                    throw new Error('Device rejected SYSSTIME command');
+                }
+
+                await requestTelemetrySection();
+            } catch (e) {
+                showErrorNotification(`Failed to sync time: ${e.message || e}`);
+            } finally {
+                icon?.classList.remove('spin-anim');
+            }
         }
 
         /**
