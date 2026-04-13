@@ -236,6 +236,12 @@
             justify-content: center;
         }
 
+        #clearChannelsBtn {
+            color: #2e7d32;
+            background: #fff;
+            border-color: #e6efe7;
+        }
+
         /* Settings / Device Info styles */
         #settings { background: #fff; }
         .settings-root { padding: 14px; overflow: auto; max-height: 100%; }
@@ -1875,6 +1881,14 @@
             <div class="modal-body">
                 <div class="message-info-grid">
                     <div class="message-info-item">
+                        <div class="message-info-label">Name</div>
+                        <div class="message-info-value" id="msgInfoName">—</div>
+                    </div>
+                    <div class="message-info-item">
+                        <div class="message-info-label">Pubkey Prefix</div>
+                        <div class="message-info-value" id="msgInfoPrefix">—</div>
+                    </div>
+                    <div class="message-info-item">
                         <div class="message-info-label">RSSI</div>
                         <div class="message-info-value" id="msgInfoRSSI">—</div>
                     </div>
@@ -1889,10 +1903,6 @@
                     <div class="message-info-item">
                         <div class="message-info-label">Time</div>
                         <div class="message-info-value" id="msgInfoTime">—</div>
-                    </div>
-                    <div class="message-info-item">
-                        <div class="message-info-label">Contact</div>
-                        <div class="message-info-value" id="msgInfoContact">—</div>
                     </div>
                 </div>
             </div>
@@ -2450,7 +2460,9 @@
             document.getElementById('msgInfoSNR').textContent = signalInfo?.snr || 'N/A';
             document.getElementById('msgInfoDistance').textContent = signalInfo?.distance || 'N/A';
             document.getElementById('msgInfoTime').textContent = signalInfo?.time || formatMessageTime(entry.ts);
-            document.getElementById('msgInfoContact').textContent = pubkeyPrefix(contactKey) || '—';
+            const c = contacts.get(contactKey) || {};
+            document.getElementById('msgInfoName').textContent = c.name || 'Unknown';
+            document.getElementById('msgInfoPrefix').textContent = pubkeyPrefix(contactKey) || '—';
             modal.classList.remove('hidden');
         }
 
@@ -2500,6 +2512,12 @@
                 content.appendChild(time);
                 row.appendChild(avatar);
                 row.appendChild(content);
+
+                if (entry.channelMeta.prefix) {
+                    row.classList.add('clickable');
+                    row.title = 'Click to fetch RSSI/SNR/Distance';
+                    row.addEventListener('click', () => requestChannelSignalInfo(entry.channelMeta));
+                }
 
                 chatWindow.appendChild(row);
                 chatWindow.scrollTop = chatWindow.scrollHeight;
@@ -2573,11 +2591,13 @@
             const c = contacts.get(routeKey) || {};
             const displayName = c.name || 'Unknown';
             const color = c.color || hashColor(routeKey || displayName);
+            const prefix = pubkeyPrefix(routeKey) || '';
             addMessage(text, type, CHANNELS_KEY, {
                 timestamp: ts || new Date(),
                 channelMeta: {
                     name: displayName,
-                    color
+                    color,
+                    prefix
                 }
             });
         }
@@ -2600,9 +2620,61 @@
                 timestamp: ts || new Date(),
                 channelMeta: {
                     name: displayName,
-                    color
+                    color,
+                    prefix: normalizedPrefix
                 }
             });
+        }
+
+        async function requestChannelSignalInfo(channelMeta) {
+            const prefix = String(channelMeta?.prefix || '').trim();
+            if (!prefix) return;
+
+            const modal = document.getElementById('messageSignalModal');
+            document.getElementById('msgInfoName').textContent = channelMeta?.name || 'Unknown';
+            document.getElementById('msgInfoPrefix').textContent = prefix.toUpperCase();
+            document.getElementById('msgInfoRSSI').textContent = '...';
+            document.getElementById('msgInfoSNR').textContent = '...';
+            document.getElementById('msgInfoDistance').textContent = '...';
+            document.getElementById('msgInfoTime').textContent = formatMessageTime(new Date());
+            modal?.classList.remove('hidden');
+
+            if (!charTX || !isBleConnected()) {
+                document.getElementById('msgInfoRSSI').textContent = 'N/A';
+                document.getElementById('msgInfoSNR').textContent = 'N/A';
+                document.getElementById('msgInfoDistance').textContent = 'N/A';
+                return;
+            }
+
+            try {
+                const prefixUpper = prefix.toUpperCase();
+                const prefixLower = prefix.toLowerCase();
+                contactInfoCache.delete(prefixUpper);
+                contactInfoCache.delete(prefixLower);
+                contactInfoCache.delete(prefix);
+
+                await commandQueue.enqueue(`AT+CONINF=${prefixUpper}\r\n`, { timeout: 4000, retries: 1 });
+
+                const deadline = Date.now() + 1500;
+                let data = null;
+                while (Date.now() < deadline) {
+                    data = contactInfoCache.get(prefixUpper)
+                        || contactInfoCache.get(prefixLower)
+                        || contactInfoCache.get(prefix);
+                    if (data) break;
+                    await new Promise(r => setTimeout(r, 50));
+                }
+
+                const info = buildSignalInfoFromConinfData(data || {}, new Date());
+                document.getElementById('msgInfoRSSI').textContent = info.rssi || 'N/A';
+                document.getElementById('msgInfoSNR').textContent = info.snr || 'N/A';
+                document.getElementById('msgInfoDistance').textContent = info.distance || 'N/A';
+                document.getElementById('msgInfoTime').textContent = info.time || formatMessageTime(new Date());
+            } catch (e) {
+                document.getElementById('msgInfoRSSI').textContent = 'N/A';
+                document.getElementById('msgInfoSNR').textContent = 'N/A';
+                document.getElementById('msgInfoDistance').textContent = 'N/A';
+            }
         }
 
         function addAdminChannelMessage(text, type = 'esp', ts) {
@@ -4735,6 +4807,18 @@
 
             try {
                 const isChannelsChat = activeKey === CHANNELS_KEY;
+                if (isChannelsChat) {
+                    const cmd = val.trim().toUpperCase();
+                    const supported =
+                        /^AT\+SYSWARN=.+$/i.test(cmd) ||
+                        cmd === 'AT+SYSWARNEND' ||
+                        cmd === 'AT+SYSSTTALL?';
+                    if (!supported) {
+                        addAdminChannelMessage('Not support', 'error', new Date());
+                        input.value = '';
+                        return;
+                    }
+                }
                 const outgoing = isChannelsChat
                     ? `${val}\r\n`
                     : `${val}@${pubkeyPrefix(activeKey)}\r\n`;
