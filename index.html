@@ -268,8 +268,9 @@
             overflow: visible;
             padding: 6px 14px 6px 14px;
         }
-        .settings-list .field { margin-bottom: 8px; }
-        .field-label { color: rgba(0,0,0,0.58); font-size: 14px; margin-bottom: 4px; }
+        .settings-list .field { margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .field-label { color: rgba(0,0,0,0.58); font-size: 14px; min-width: 100px; }
+        .field-with-item { flex: 1; }
         .settings-list .item {
             padding: 10px 12px;
             background: #f6f6f6;
@@ -1638,14 +1639,31 @@
                         <div class="item"><div class="value" id="ciRoute">—</div></div>
                     </div>
                     <div class="field">
-                        <div class="field-label">Hops</div>
+                        <div class="field-label">Out Hops</div>
                         <div class="item"><div class="value" id="ciHops">—</div></div>
                     </div>
                     <div class="field">
                         <div class="field-label">Out Path</div>
-                        <div class="item field-editable">
-                            <span class="value" id="ciOutPath">—</span>
-                            <i class="material-icons edit-icon" onclick="openEditParamModal('Out Path', 'CONWPATH', document.getElementById('ciOutPath').textContent, 'ciOutPath')" title="Edit Out Path">edit</i>
+                        <div class="field-with-item">
+                            <div class="item field-editable">
+                                <span class="value" id="ciOutPath">—</span>
+                                <button class="btn-icon" style="width: 28px; height: 28px; border-color: #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" onclick="syncContactOutPath()" type="button" title="Sync Out Path"><i id="syncContactOutPathIcon" class="material-icons" style="font-size: 16px;">sync</i></button>
+                                <i class="material-icons edit-icon" onclick="openEditParamModal('Out Path', 'CONWPATH', document.getElementById('ciOutPath').textContent, 'ciOutPath')" title="Edit Out Path">edit</i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">In Hops</div>
+                        <div class="item"><div class="value" id="ciInHops">(unknow)</div></div>
+                    </div>
+                    <div class="field">
+                        <div class="field-label">In Path</div>
+                        <div class="field-with-item">
+                            <div class="item field-editable">
+                                <span class="value" id="ciInPath">(unknow)</span>
+                                <button class="btn-icon" style="width: 28px; height: 28px; border-color: #ddd; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" onclick="syncContactInPath()" type="button" title="Sync In Path"><i id="syncContactInPathIcon" class="material-icons" style="font-size: 16px;">sync</i></button>
+                                <i class="material-icons edit-icon" onclick="openEditParamModal('In Path', 'INPATH', document.getElementById('ciInPath').textContent, 'ciInPath')" title="Edit In Path">edit</i>
+                            </div>
                         </div>
                     </div>
                     <div class="field">
@@ -2130,6 +2148,7 @@
         let telemetryInterval = null;
         let currentContactInfoPrefix = '';
         let pendingContactTelemetryPrefix = '';
+        let pendingRemoteInPathWrite = null; // { prefix, path }
         let contactInfoData = {};
         let isContactInfoSyncing = false;
         // Per-contact info cache keyed by 12-char pubkey prefix
@@ -2701,7 +2720,7 @@
                 
                 // Send AT+GPSLOC command with contact prefix format: AT+GPSLOC=lat,lon@prefix
                 const atCommand = `AT+GPSLOC=${lat},${lon}@${currentContactInfoPrefix}\r\n`;
-                await commandQueue.enqueue(atCommand, { timeout: 3000 });
+                await commandQueue.enqueue(atCommand, { timeout: 8000, retries: 0 });
                 
                 // Update cache and UI with new location after successful send
                 if (!contactInfoCache.get(currentContactInfoPrefix)) {
@@ -2799,6 +2818,36 @@
             try {
                 // Determine format based on command
                 let atCommand = `AT+${paramCommand}=${newValue}\r\n`;
+                if (paramCommand === 'INPATH') {
+                    const devPrefix = getDevicePrefix();
+                    if (!devPrefix) throw new Error('Missing device pubkey prefix');
+                    if (!currentContactInfoPrefix) throw new Error('Missing contact prefix');
+                    
+                    // Immediately update UI with new In Path and compute In Hops
+                    const normalizedPath = String(newValue).trim().toLowerCase();
+                    const inHopsValue = computeHopsFromPath(normalizedPath);
+                    const displayPath = formatPathForDisplay(normalizedPath, '(unknow)');
+                    
+                    const inPathEl = document.getElementById('ciInPath');
+                    if (inPathEl) inPathEl.textContent = displayPath;
+                    const inHopsEl = document.getElementById('ciInHops');
+                    if (inHopsEl) inHopsEl.textContent = inHopsValue;
+                    
+                    // Also update cache and contactInfoData
+                    if (currentContactInfoPrefix) {
+                        const normalizedPrefix = String(currentContactInfoPrefix).trim().toLowerCase();
+                        const cached = contactInfoCache.get(normalizedPrefix) || {};
+                        contactInfoCache.set(normalizedPrefix, { ...cached, inPath: normalizedPath, inHops: inHopsValue });
+                        contactInfoData = { ...contactInfoData, inPath: normalizedPath, inHops: inHopsValue };
+                    }
+                    
+                    // Remote set In Path: AT+CONWPATH=<my_prefix>,<path>@<contact_prefix>
+                    atCommand = `AT+CONWPATH=${devPrefix},${newValue}@${currentContactInfoPrefix}\r\n`;
+                    pendingRemoteInPathWrite = {
+                        prefix: currentContactInfoPrefix,
+                        path: String(newValue).trim().toLowerCase()
+                    };
+                }
                 if (paramCommand === 'CONWPATH' || paramCommand === 'CONRPATH') {
                     if (!currentContactInfoPrefix) throw new Error('Missing contact prefix');
                     atCommand = `AT+${paramCommand}=${currentContactInfoPrefix},${newValue}\r\n`;
@@ -2839,8 +2888,17 @@
                     return false;
                 };
 
-                // Send command with retry
-                await sendATWithRetry(atCommand, confirmFn, 3, 2000);
+                const isRemoteConfig = atCommand.includes('@');
+                if (isRemoteConfig) {
+                    // Remote config commands: no retry, wait longer timeout
+                    const remoteResp = await commandQueue.enqueue(atCommand, { timeout: 8000, retries: 0 });
+                    if (remoteResp && /ERROR|\+CM[ES]\s+ERROR/i.test(remoteResp)) {
+                        errorResponse = remoteResp;
+                    }
+                } else {
+                    // Local commands: normal retry behavior
+                    await sendATWithRetry(atCommand, confirmFn, 3, 2000);
+                }
 
                 if (errorResponse) {
                     throw new Error(formatErrorMessage(errorResponse));
@@ -2863,7 +2921,7 @@
                     if (section === 'info') await requestInfoSection();
                     else if (section === 'lora') await requestLoRaSection();
                     else if (section === 'gps') await requestGPSSection();
-                    else if (section === 'contactInfo') await requestContactInfoSection();
+                    else if (section === 'contactInfo' && paramCommand !== 'INPATH') await requestContactInfoSection();
                 }
 
                 closeEditParamModal();
@@ -2873,12 +2931,19 @@
                 console.error('[EDIT] Error:', e);
                 showErrorNotification(`Error updating ${paramName}: ${e.message}`);
 
+                if (paramCommand === 'INPATH') {
+                    pendingRemoteInPathWrite = null;
+                }
+
                 // Restore field to previous value
                 const fieldEl = document.getElementById(paramField);
                 if (fieldEl) {
                     fieldEl.textContent = paramOriginalValue;
                 }
             } finally {
+                if (paramCommand === 'INPATH') {
+                    pendingRemoteInPathWrite = null;
+                }
                 isEditSubmitting = false;
                 document.getElementById('submitEditBtn').disabled = false;
                 document.getElementById('submitEditBtn').innerHTML = '<i class="material-icons">check</i> Send';
@@ -3510,6 +3575,100 @@
                 .replaceAll("'", '&#39;');
         }
 
+        function updateInPathForContact(prefix, pathHex) {
+            if (!prefix) return;
+            const normalizedPrefix = String(prefix).trim().toLowerCase();
+            const normalizedPath = String(pathHex || '').trim().toLowerCase();
+            const pathValue = normalizedPath || '(unknow)';
+            const inHopsValue = computeHopsFromPath(pathValue);
+
+            const cached = contactInfoCache.get(normalizedPrefix) || contactInfoCache.get(prefix) || {};
+            contactInfoCache.set(normalizedPrefix, { ...cached, inPath: pathValue, inHops: inHopsValue });
+
+            if (String(currentContactInfoPrefix || '').toLowerCase() === normalizedPrefix) {
+                contactInfoData = { ...contactInfoData, inPath: pathValue, inHops: inHopsValue };
+                const el = document.getElementById('ciInPath');
+                if (el) el.textContent = formatPathForDisplay(pathValue, '(unknow)');
+                const hopsEl = document.getElementById('ciInHops');
+                if (hopsEl) hopsEl.textContent = inHopsValue;
+            }
+
+            for (const [pk, c] of contacts) {
+                if (String(pubkeyPrefix(pk) || '').toLowerCase() === normalizedPrefix) {
+                    contacts.set(pk, { ...c, inPath: pathValue, inHops: inHopsValue });
+                    break;
+                }
+            }
+        }
+
+        function formatPathForDisplay(pathValue, fallback = '(unknow)') {
+            const raw = String(pathValue || '').trim();
+            if (!raw) return fallback;
+
+            const low = raw.toLowerCase();
+            if (low === '(unknow)' || low === 'unknown' || low === 'n/a') return '(unknow)';
+            if (low === '(zero-hop)' || low === 'zero-hop') return '(zero-hop)';
+
+            // If already arrow format, normalize to upper-case tokens
+            if (raw.includes('->')) {
+                return raw.split('->').map(s => s.trim().toUpperCase()).filter(Boolean).join('->') || fallback;
+            }
+
+            // Convert compact path like b1b2c3 -> B1->B2->C3
+            const compact = raw.replace(/\s+/g, '').replace(/,/g, '').toUpperCase();
+            if (/^[0-9A-F]+$/.test(compact) && compact.length >= 2 && compact.length % 2 === 0) {
+                const parts = compact.match(/.{1,2}/g) || [];
+                return parts.join('->');
+            }
+
+            return raw.toUpperCase();
+        }
+
+        function computeHopsFromPath(pathValue) {
+            const raw = String(pathValue || '').trim();
+            if (!raw) return '(unknow)';
+
+            const low = raw.toLowerCase();
+            if (low === '(unknow)' || low === 'unknown' || low === 'n/a') return '(unknow)';
+            if (low === '(zero-hop)' || low === 'zero-hop') return '0';
+            if (low === '0') return '0';
+
+            if (raw.includes('->')) {
+                const count = raw.split('->').map(s => s.trim()).filter(Boolean).length;
+                return String(count);
+            }
+
+            const compact = raw.replace(/\s+/g, '').replace(/,/g, '');
+            if (/^[0-9a-fA-F]+$/.test(compact) && compact.length % 2 === 0) {
+                return String(compact.length / 2);
+            }
+
+            return '(unknow)';
+        }
+
+        function updateOutPathForContact(prefix, pathHex) {
+            if (!prefix) return;
+            const normalizedPrefix = String(prefix).trim().toLowerCase();
+            const normalizedPath = String(pathHex || '').trim().toLowerCase();
+            const pathValue = normalizedPath || '(zero-hop)';
+
+            const cached = contactInfoCache.get(normalizedPrefix) || contactInfoCache.get(prefix) || {};
+            contactInfoCache.set(normalizedPrefix, { ...cached, outPath: pathValue });
+
+            if (String(currentContactInfoPrefix || '').toLowerCase() === normalizedPrefix) {
+                contactInfoData = { ...contactInfoData, outPath: pathValue };
+                const el = document.getElementById('ciOutPath');
+                if (el) el.textContent = pathValue;
+            }
+
+            for (const [pk, c] of contacts) {
+                if (String(pubkeyPrefix(pk) || '').toLowerCase() === normalizedPrefix) {
+                    contacts.set(pk, { ...c, outPath: pathValue });
+                    break;
+                }
+            }
+        }
+
         function handleIncomingLine(line, blePrefix) {
             const trimmed = line.trim();
             if (!trimmed) return;
@@ -3624,6 +3783,38 @@
                                 }
                             }
                         }
+                    }
+
+                    // Remote IN PATH query response:
+                    // +CONRPATH:<devicePrefix>,<pathHex>
+                    let isPathControlResponse = false;
+                    if (messageText.startsWith('+CONRPATH:')) {
+                        const m = messageText.match(/^\+CONRPATH:\s*([^,]+),\s*([0-9a-fA-F]+)\s*$/i);
+                        if (m) {
+                            const respDevicePrefix = String(m[1] || '').trim().toUpperCase();
+                            const localDevicePrefix = (getDevicePrefix() || '').toUpperCase();
+                            // Only accept path intended for this device prefix (if known)
+                            if (!localDevicePrefix || respDevicePrefix === localDevicePrefix) {
+                                updateInPathForContact(incomingPrefix, m[2]);
+                            }
+                        }
+                        isPathControlResponse = true;
+                    }
+
+                    // Remote IN PATH set ack response:
+                    // +CONWPATH:1 or +CONWPATH:0
+                    if (messageText.startsWith('+CONWPATH:')) {
+                        const ok = /^\+CONWPATH:\s*[01]\s*$/i.test(messageText);
+                        if (ok && pendingRemoteInPathWrite && pendingRemoteInPathWrite.prefix === incomingPrefix) {
+                            updateInPathForContact(incomingPrefix, pendingRemoteInPathWrite.path);
+                            pendingRemoteInPathWrite = null;
+                        }
+                        isPathControlResponse = true;
+                    }
+
+                    // Do not push path-control responses into chat/unread counters
+                    if (isPathControlResponse) {
+                        return;
                     }
 
                     // Determine message type based on error type
@@ -3762,6 +3953,16 @@
                 const value = trimmed.slice('+GPSEN:'.length).trim();
                 deviceInfo.gpsEnabled = value;
                 if (currentSyncSection === 'gps') flashGreen('gps');
+                return;
+            }
+
+            // Local out-path query response: +CONRPATH:<contactPrefix>,<pathHex>
+            if (trimmed.startsWith('+CONRPATH:')) {
+                const m = trimmed.match(/^\+CONRPATH:\s*([^,]+),\s*([0-9a-fA-F]+)\s*$/i);
+                if (m) {
+                    const targetPrefix = String(m[1] || '').trim();
+                    updateOutPathForContact(targetPrefix, m[2]);
+                }
                 return;
             }
 
@@ -4289,12 +4490,62 @@
             if (event.key === 'Enter') {
                 event.preventDefault();
                 sendData();
+            } else if (event.key === 'Tab') {
+                const inputEl = document.getElementById('at-input');
+                if (inputEl.dataset.templateActive === '1') {
+                    const moved = selectNextTemplateField(inputEl);
+                    if (moved) event.preventDefault();
+                }
             } else if (event.key === 'Escape') {
                 const ac = document.getElementById('atAutocomplete');
                 ac.classList.add('hidden');
                 ac.innerHTML = '';
             }
         });
+
+        function findTemplateFieldRange(text, fromIndex = 0) {
+            const re = /<[^>]+>/g;
+            re.lastIndex = Math.max(0, fromIndex);
+            const m = re.exec(String(text || ''));
+            if (!m) return null;
+            return { start: m.index, end: m.index + m[0].length };
+        }
+
+        function applyCommandTemplate(inputEl, cmd) {
+            inputEl.value = cmd;
+            const firstField = findTemplateFieldRange(cmd, 0);
+            if (firstField) {
+                inputEl.dataset.templateActive = '1';
+                inputEl.setSelectionRange(firstField.start, firstField.end);
+            } else {
+                delete inputEl.dataset.templateActive;
+                const len = inputEl.value.length;
+                inputEl.setSelectionRange(len, len);
+            }
+        }
+
+        function selectNextTemplateField(inputEl) {
+            const value = String(inputEl.value || '');
+            const cursor = Number.isFinite(inputEl.selectionEnd) ? inputEl.selectionEnd : 0;
+            let nextField = findTemplateFieldRange(value, cursor);
+
+            // If none after cursor, wrap to first remaining field
+            if (!nextField) nextField = findTemplateFieldRange(value, 0);
+            if (!nextField) {
+                delete inputEl.dataset.templateActive;
+                return false;
+            }
+
+            inputEl.setSelectionRange(nextField.start, nextField.end);
+            return true;
+        }
+
+        function handleTemplateInput(inputEl) {
+            if (inputEl.dataset.templateActive !== '1') return;
+            if (!/<[^>]+>/.test(String(inputEl.value || ''))) {
+                delete inputEl.dataset.templateActive;
+            }
+        }
 
         function updateAutocomplete(inputId, acId) {
             const inputEl = document.getElementById(inputId);
@@ -4331,7 +4582,7 @@
                 }
                 item.addEventListener('mousedown', (e) => {
                     e.preventDefault(); // keep input focused
-                    inputEl.value = cmd;
+                    applyCommandTemplate(inputEl, cmd);
                     inputEl.focus();
                     ac.classList.add('hidden');
                     ac.innerHTML = '';
@@ -4341,7 +4592,11 @@
             ac.classList.remove('hidden');
         }
 
-        document.getElementById('at-input').addEventListener('input', () => updateAutocomplete('at-input', 'atAutocomplete'));
+        document.getElementById('at-input').addEventListener('input', () => {
+            const inputEl = document.getElementById('at-input');
+            handleTemplateInput(inputEl);
+            updateAutocomplete('at-input', 'atAutocomplete');
+        });
         document.getElementById('at-input').addEventListener('focus', () => updateAutocomplete('at-input', 'atAutocomplete'));
 
         document.getElementById('at-input').addEventListener('blur', () => {
@@ -4357,6 +4612,12 @@
             if (event.key === 'Enter') {
                 event.preventDefault();
                 sendTerminalCommand();
+            } else if (event.key === 'Tab') {
+                const inputEl = document.getElementById('terminal-input');
+                if (inputEl.dataset.templateActive === '1') {
+                    const moved = selectNextTemplateField(inputEl);
+                    if (moved) event.preventDefault();
+                }
             } else if (event.key === 'Escape') {
                 const ac = document.getElementById('terminalAutocomplete');
                 ac.classList.add('hidden');
@@ -4364,7 +4625,11 @@
             }
         });
 
-        document.getElementById('terminal-input').addEventListener('input', () => updateAutocomplete('terminal-input', 'terminalAutocomplete'));
+        document.getElementById('terminal-input').addEventListener('input', () => {
+            const inputEl = document.getElementById('terminal-input');
+            handleTemplateInput(inputEl);
+            updateAutocomplete('terminal-input', 'terminalAutocomplete');
+        });
         document.getElementById('terminal-input').addEventListener('focus', () => updateAutocomplete('terminal-input', 'terminalAutocomplete'));
 
         document.getElementById('terminal-input').addEventListener('blur', () => {
@@ -4490,7 +4755,8 @@
             console.log(`[DEBUG] showContactInfo: c.pubkey=${c.pubkey}, macAddress=${macAddress}`);
             currentContactInfoPrefix = macAddress;
             // Use cached data if available so the screen is populated instantly
-            const cached = contactInfoCache.get(currentContactInfoPrefix);
+            const prefixKey = String(currentContactInfoPrefix || '').toLowerCase();
+            const cached = contactInfoCache.get(prefixKey) || contactInfoCache.get(currentContactInfoPrefix);
             if (cached) {
                 contactInfoData = { ...cached };
             } else {
@@ -4501,6 +4767,8 @@
                     pubKey: c.pubkey || '',
                     rssi: '', snr: '', route: '', hops: '',
                     outPathLen: '', outPath: '',
+                    inPath: c.inPath || '(unknow)',
+                    inHops: c.inHops || computeHopsFromPath(c.inPath || '(unknow)'),
                     lastAdvert: '', lastMod: '', gps: ''
                 };
             }
@@ -4544,6 +4812,59 @@
                 addMessage("Sync Error: " + err, "sys", SYSTEM_KEY);
             } finally {
                 pendingContactTelemetryPrefix = '';
+            }
+        }
+
+        async function syncContactInPath() {
+            if (!charTX || !isBleConnected()) {
+                showErrorNotification('Not connected to device');
+                return;
+            }
+            if (!currentContactInfoPrefix) {
+                showErrorNotification('No contact selected');
+                return;
+            }
+
+            const devPrefix = getDevicePrefix();
+            if (!devPrefix) {
+                showErrorNotification('Missing device pubkey prefix');
+                return;
+            }
+
+            const icon = document.getElementById('syncContactInPathIcon');
+            icon?.classList.add('spin-anim');
+
+            try {
+                const cmd = `AT+CONRPATH=${devPrefix}@${currentContactInfoPrefix}\r\n`;
+                await commandQueue.enqueue(cmd, { timeout: 8000, retries: 0 });
+            } catch (e) {
+                showErrorNotification(`Error syncing In Path: ${e.message || e}`);
+            } finally {
+                icon?.classList.remove('spin-anim');
+            }
+        }
+
+        async function syncContactOutPath() {
+            if (!charTX || !isBleConnected()) {
+                showErrorNotification('Not connected to device');
+                return;
+            }
+            if (!currentContactInfoPrefix) {
+                showErrorNotification('No contact selected');
+                return;
+            }
+
+            const icon = document.getElementById('syncContactOutPathIcon');
+            icon?.classList.add('spin-anim');
+
+            try {
+                // Local query for out path to current contact
+                const cmd = `AT+CONRPATH=${currentContactInfoPrefix}\r\n`;
+                await commandQueue.enqueue(cmd, { timeout: 4000, retries: 0 });
+            } catch (e) {
+                showErrorNotification(`Error syncing Out Path: ${e.message || e}`);
+            } finally {
+                icon?.classList.remove('spin-anim');
             }
         }
 
@@ -4612,6 +4933,7 @@
                 hops:         get('Hops'),
                 outPathLen:   get('OutPathLen'),
                 outPath:      get('OutPath'),
+                inPath:       get('InPath'),
                 lastAdvert:   get('LastAdvert(GMT+7)'),
                 lastMod:      get('LastMod(GMT+7)'),
                 gps:          get('GPS'),
@@ -4656,13 +4978,20 @@
             console.log(`[CONINF] Parsed data:`, parsed);
             coninfLines = [];
 
+            // CONINF currently may not include InPath. Keep existing InPath when missing.
+            const parsedNormalized = { ...parsed };
+            if (!parsedNormalized.inPath) {
+                delete parsedNormalized.inPath;
+            }
+
             // Store in cache and enrich the contact row so the list subtitle updates
             if (parsed.pubKeyPrefix) {
                 console.log(`[CONINF] Caching for prefix: ${parsed.pubKeyPrefix}`);
-                contactInfoCache.set(parsed.pubKeyPrefix, parsed);
+                const existingCached = contactInfoCache.get(parsed.pubKeyPrefix) || {};
+                contactInfoCache.set(parsed.pubKeyPrefix, { ...existingCached, ...parsedNormalized });
                 for (const [pk, c] of contacts) {
                     if (pubkeyPrefix(pk) === parsed.pubKeyPrefix) {
-                        contacts.set(pk, {
+                        const mergedContact = {
                             ...c,
                             rssi:       parsed.rssi,
                             snr:        parsed.snr,
@@ -4672,6 +5001,12 @@
                             outPath:    parsed.outPath,
                             lastAdvert: parsed.lastAdvert,
                             gps:        parsed.gps
+                        };
+                        if (parsedNormalized.inPath) {
+                            mergedContact.inPath = parsedNormalized.inPath;
+                        }
+                        contacts.set(pk, {
+                            ...mergedContact
                         });
                         renderContacts();
                         break;
@@ -4684,7 +5019,7 @@
             // Update the Contact Info screen if it is open for this contact
             if (currentContactInfoPrefix &&
                 (parsed.pubKeyPrefix === currentContactInfoPrefix || !parsed.pubKeyPrefix)) {
-                contactInfoData = { ...contactInfoData, ...parsed };
+                contactInfoData = { ...contactInfoData, ...parsedNormalized };
                 populateContactInfo();
                 if (isContactInfoSyncing) flashGreenContactInfo();
             }
@@ -4887,6 +5222,8 @@
                     document.getElementById('ciRoute').textContent = '—';
                     document.getElementById('ciHops').textContent = '—';
                     document.getElementById('ciOutPath').textContent = '—';
+                    document.getElementById('ciInHops').textContent = '(unknow)';
+                    document.getElementById('ciInPath').textContent = '(unknow)';
                     document.getElementById('ciLastAdvert').textContent = '—';
                     document.getElementById('ciLastMod').textContent = '—';
                     document.getElementById('ciLocation').textContent = '—';
@@ -4918,8 +5255,12 @@
             document.getElementById('ciRoute').textContent = d.route || ph;
             document.getElementById('ciRSSI').textContent = d.rssi || ph;
             document.getElementById('ciSNR').textContent = d.snr || ph;
-            document.getElementById('ciHops').textContent = d.hops || ph;
-            document.getElementById('ciOutPath').textContent = d.outPath || ph;
+            const outHopsDisplay = d.hops || (d.outPath ? computeHopsFromPath(d.outPath) : ph);
+            document.getElementById('ciHops').textContent = outHopsDisplay;
+            document.getElementById('ciOutPath').textContent = d.outPath ? formatPathForDisplay(d.outPath, ph) : ph;
+            const inPathRaw = d.inPath || '(unknow)';
+            document.getElementById('ciInPath').textContent = formatPathForDisplay(inPathRaw, '(unknow)');
+            document.getElementById('ciInHops').textContent = d.inHops || computeHopsFromPath(inPathRaw);
             document.getElementById('ciLastAdvert').textContent = d.lastAdvert || ph;
             document.getElementById('ciLastMod').textContent = d.lastMod || ph;
             
@@ -5045,7 +5386,7 @@
             if (['SYSID', 'NWKKEY', 'LRCH'].includes(type)) return 'info';
             if (['LRFQ', 'LRSF', 'LRBW', 'LRTXP'].includes(type)) return 'lora';
             if (['GPSEN'].includes(type)) return 'gps';
-            if (type === 'CONWPATH') return 'contactInfo';
+            if (type === 'CONWPATH' || type === 'INPATH') return 'contactInfo';
         }
 
         /**
@@ -5521,21 +5862,71 @@
         // ── AT command list (used by autocomplete dropdown) ──────────────────
         const AT_COMMANDS = [
             // --- System ---
-            'AT+SYSINFO?', 'AT+SYSHELP?', 'AT+SYSPUBK?', 'AT+SYSID=', 'AT+SYSID?',
-            'AT+SYSRST', 'AT+SYSBAT?', 'AT+SYSSTATUS?', 'AT+SYSBLE=', 'AT+SYSBLE?',
-            'AT+SYSBLNM=', 'AT+SYSLGD?', 'AT+SYSLGE?', 'AT+SYSLGA?', 'AT+SYSLGO?', 
-            'AT+SYSWTIME?', 'AT+SYSTIME?', 'AT+SYSWKU?',
+            'AT+SYSINFO?',
+            'AT+SYSHELP?',
+            'AT+SYSPUBK?',
+            'AT+SYSID=name',
+            'AT+SYSID?',
+            'AT+SYSRST',
+            'AT+SYSBAT?',
+            'AT+SYSSTATUS?',
+            'AT+SYSSTTALL?',
+            'AT+SYSBLE=0|1',
+            'AT+SYSBLE?',
+            'AT+SYSBLNM=name',
+            'AT+SYSLGD?',
+            'AT+SYSLGE?',
+            'AT+SYSLGA?',
+            'AT+SYSTIME?',
+            'AT+SYSSTIME=timestamp',
+            'AT+SYSWARN=level',
+            'AT+SYSWARNEND',
+
             // --- Radio ---
-            'AT+LRCH=', 'AT+LRCH?', 'AT+LRFQ=', 'AT+LRSF=', 'AT+LRBW=', 'AT+LRTXP=',
-            'AT+LRCFG=', 'AT+LRCFG?', 'AT+LRADV=', 'AT+LRSEND=',
-            'AT+NWKKEY=', 'AT+NWKKEY?', 'AT+LRCRD=', 'AT+LRCRD?', 'AT+ACLLST?',
+            'AT+LRCH=0..6',
+            'AT+LRCH?',
+            'AT+LRFQ=freq',
+            'AT+LRSF=sf',
+            'AT+LRBW=bw',
+            'AT+LRTXP=power',
+            'AT+LRCFG=f,sf,bw,p',
+            'AT+LRCFG?',
+            'AT+LRADV=0|1',
+            'AT+LRSEND=message',
+            'AT+NWKKEY=key(1..31 chars)+channel',
+            'AT+NWKKEY?',
+            'AT+LRCRD',
+            'AT+LRCRD?',
+            'AT+ACLLST?',
+
             // --- Contact ---
-            'AT+CONLST?', 'AT+CONINF=', 'AT+CONADD=', 'AT+CONDEL=', 'AT+CONSHR=',
-            'AT+CONWPATH=', 'AT+CONRPATH=',
+            'AT+CONLST?',
+            'AT+CONINF=prefix',
+            'AT+CONADD=pubkey',
+            'AT+CONDEL=prefix',
+            'AT+CONSHR=prefix',
+            'AT+CONWPATH=prefix,path_hex',
+            'AT+CONRPATH=prefix',
+
             // --- GPS ---
-            'AT+GPSINF?', 'AT+GPSEN=', 'AT+GPSEN?', 'AT+GPSRST', 'AT+GPSCFG=', 'AT+GPSCFG?', 'AT+GPSSYNC', 'AT+GPSLOC=', 'AT+GPSLOC?',
-            // --- Warn ---
-            'AT+WARN=', 'AT+WARN?', 'AT+WARNEND', 'AT+WARNCFG=', 'AT+WARNCFG?'
+            'AT+GPSINF?',
+            'AT+GPSEN=0|1',
+            'AT+GPSRST',
+            'AT+GPSCFG=config',
+            'AT+GPSEN?',
+            'AT+GPSCFG?',
+
+            // --- Warn (local) ---
+            'AT+WARN=level',
+            'AT+WARN?',
+            'AT+WARNEND=index,guard',
+            'AT+WARNCFG=level,on_time,off_time,repeat',
+            'AT+WARNCFG?',
+
+            // --- Extended app commands (current UI also supports) ---
+            'AT+GPSSYNC',
+            'AT+GPSLOC=lat,lon',
+            'AT+GPSLOC?'
         ];
 
         // Close popups on outside click
