@@ -652,7 +652,8 @@
         .contact-menu-popup .menu-item.danger { color: #e53935; }
         .contact-menu-popup .menu-item .material-icons { font-size: 18px; color: inherit; }
 
-        #chat-window {
+        #chat-window,
+        #channels-window {
             flex: 1;
             padding: 14px 12px;
             overflow-y: auto;
@@ -725,6 +726,58 @@
             font-size: 11px;
             opacity: 0.75;
             text-align: right;
+        }
+
+        .channel-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            align-self: flex-start;
+            max-width: 92%;
+        }
+
+        .channel-row.admin {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .channel-row.admin .channel-content {
+            border-left: none;
+            border-right: 3px solid #2e7d32;
+        }
+
+        .channel-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+            text-transform: uppercase;
+        }
+
+        .channel-avatar .material-icons {
+            font-size: 17px;
+            line-height: 1;
+        }
+
+        .channel-content {
+            min-width: 0;
+            background: rgba(0,0,0,0.04);
+            border-left: 3px solid #999;
+            border-radius: 3px;
+            padding: 6px 10px;
+        }
+
+        .channel-name {
+            font-weight: 700;
+            font-size: 13px;
+            margin-bottom: 2px;
         }
 
         .input-bar {
@@ -1349,6 +1402,10 @@
             <button id="settingsBtn" class="btn-icon" type="button" onclick="if(isBleConnected()) showSettings(); else addMessage('Connect to device first.', 'sys', SYSTEM_KEY);" title="Device Info">
                 <i class="material-icons" aria-hidden="true">settings</i>
             </button>
+
+            <button id="clearChannelsBtn" class="btn-icon hidden" type="button" onclick="clearChannelsMessages()" title="Clear channels messages">
+                <i class="material-icons" aria-hidden="true">delete</i>
+            </button>
         </div>
     </header>
 
@@ -1370,6 +1427,13 @@
             <div id="emptyContacts" class="empty hidden thtech-watermark">No contacts yet.</div>
         </div>
 
+        <div id="channelsTabContent" class="hidden" style="flex:1; min-height:0; position:relative; display:flex; flex-direction:column; background:#fff;">
+            <div style="padding: 10px 12px; border-bottom: 1px solid #e5e5e5; font-weight: 600; color: #333; font-size: 14px;">
+                CHANNELS: <span id="channelsNetworkKey" style="font-family: 'Courier New', monospace; color: #0066cc;">—</span>
+            </div>
+            <div id="channels-window" aria-label="Channels message window"></div>
+        </div>
+
         <div id="mapTabContent" class="hidden" style="flex:1; min-height:0; position:relative;">
             <div id="map" style="width: 100%; height: 100%;"></div>
             <button class="map-sync-btn" onclick="syncMapLocations()" title="Sync Locations">
@@ -1381,6 +1445,10 @@
             <div id="navTabContacts" class="nav-item active" onclick="switchMainTab('contacts')">
                 <i class="material-icons">format_list_bulleted</i>
                 <span>CONTACT LIST</span>
+            </div>
+            <div id="navTabChannels" class="nav-item" onclick="openChannelsChat()">
+                <i class="material-icons">groups</i>
+                <span>CHANNELS</span>
             </div>
             <div id="navTabMap" class="nav-item" onclick="switchMainTab('map')">
                 <i class="material-icons">map</i>
@@ -2035,6 +2103,7 @@
         const contacts = new Map(); // key -> { name, pubkey, color, macAddress }
         const contactMacMap = new Map(); // contactKey -> macAddress (for AT+CONINF= commands)
         const histories = new Map(); // key -> Array<{ text, type }>
+        const CHANNELS_KEY = '__channels__';
 
         // ── CME Error Codes (Equipment/Hardware/System Errors) ─────────────────
         const CME_ERROR_MAP = {
@@ -2271,7 +2340,8 @@
                 text,
                 type: type || 'sys',
                 ts: ts.toISOString(),
-                signalInfo: options.signalInfo || null
+                signalInfo: options.signalInfo || null,
+                channelMeta: options.channelMeta || null
             };
             histories.get(key).push(entry);
 
@@ -2390,6 +2460,52 @@
 
         function appendMessageToDom(entry, key) {
             const chatWindow = document.getElementById('chat-window');
+
+            if (key === CHANNELS_KEY && entry.channelMeta) {
+                const row = document.createElement('div');
+                row.className = 'channel-row';
+                const isAdminChannel = String(entry.channelMeta.name || '').toUpperCase() === 'ADMIN';
+                if (isAdminChannel) row.classList.add('admin');
+
+                const avatar = document.createElement('div');
+                avatar.className = 'channel-avatar';
+                avatar.style.background = entry.channelMeta.color || '#607d8b';
+                if (entry.channelMeta.avatarIcon) {
+                    avatar.innerHTML = `<i class="material-icons" aria-hidden="true">${entry.channelMeta.avatarIcon}</i>`;
+                } else {
+                    avatar.textContent = String(entry.channelMeta.name || '?').trim().slice(0, 1).toUpperCase() || '?';
+                }
+
+                const content = document.createElement('div');
+                content.className = 'channel-content';
+                if (entry.type === 'error' || entry.type === 'sendError') {
+                    content.style.borderLeftColor = '#cc0000';
+                }
+
+                const nameEl = document.createElement('div');
+                nameEl.className = 'channel-name';
+                nameEl.style.color = entry.channelMeta.color || '#607d8b';
+                nameEl.textContent = entry.channelMeta.name || 'Unknown';
+
+                const main = document.createElement('div');
+                main.className = 'msg-main';
+                main.textContent = entry.text;
+
+                const time = document.createElement('div');
+                time.className = 'msg-time';
+                time.textContent = formatMessageTime(entry.ts);
+
+                content.appendChild(nameEl);
+                content.appendChild(main);
+                content.appendChild(time);
+                row.appendChild(avatar);
+                row.appendChild(content);
+
+                chatWindow.appendChild(row);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+                return;
+            }
+
             const div = document.createElement('div');
             div.className = `msg ${entry.type || 'sys'}`;
 
@@ -2414,6 +2530,99 @@
 
             chatWindow.appendChild(div);
             chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function getChannelsNetworkKeyText() {
+            const networkKey = String(
+                document.getElementById('infoNetworkKeyInput')?.textContent
+                || deviceInfo.networkKey
+                || ''
+            ).trim();
+            return networkKey || '—';
+        }
+
+        function clearChannelsMessages() {
+            histories.set(CHANNELS_KEY, []);
+            if (activeKey === CHANNELS_KEY && !document.getElementById('chat').classList.contains('hidden')) {
+                renderChat(CHANNELS_KEY);
+            }
+        }
+
+        function appendChannelMessageToDom(entry) {
+            const channelsWindow = document.getElementById('channels-window');
+            if (!channelsWindow) return;
+
+            const div = document.createElement('div');
+            div.className = `msg ${entry.type || 'esp'}`;
+
+            const main = document.createElement('div');
+            main.className = 'msg-main';
+            main.textContent = `[${entry.label}] ${entry.text}`;
+
+            const time = document.createElement('div');
+            time.className = 'msg-time';
+            time.textContent = formatMessageTime(entry.ts);
+
+            div.appendChild(main);
+            div.appendChild(time);
+            channelsWindow.appendChild(div);
+            channelsWindow.scrollTop = channelsWindow.scrollHeight;
+        }
+
+        function addChannelFeedMessage(routeKey, text, type = 'esp', ts) {
+            const c = contacts.get(routeKey) || {};
+            const displayName = c.name || 'Unknown';
+            const color = c.color || hashColor(routeKey || displayName);
+            addMessage(text, type, CHANNELS_KEY, {
+                timestamp: ts || new Date(),
+                channelMeta: {
+                    name: displayName,
+                    color
+                }
+            });
+        }
+
+        function addChannelFeedMessageByPrefix(prefix, text, type = 'esp', ts) {
+            const routeKey = contactKeyByPrefix(prefix);
+            if (routeKey) {
+                addChannelFeedMessage(routeKey, text, type, ts);
+                return;
+            }
+
+            const devicePrefix = (getDevicePrefix() || '').toUpperCase();
+            const normalizedPrefix = String(prefix || '').trim().toUpperCase();
+            const isDevice = devicePrefix && normalizedPrefix === devicePrefix;
+            const deviceName = String(document.getElementById('infoNameInput')?.textContent || '').trim();
+            const displayName = isDevice ? (deviceName || 'Device') : (normalizedPrefix || 'Unknown');
+            const color = isDevice ? '#ff9800' : hashColor(displayName);
+
+            addMessage(text, type, CHANNELS_KEY, {
+                timestamp: ts || new Date(),
+                channelMeta: {
+                    name: displayName,
+                    color
+                }
+            });
+        }
+
+        function addAdminChannelMessage(text, type = 'esp', ts) {
+            addMessage(text, type, CHANNELS_KEY, {
+                timestamp: ts || new Date(),
+                channelMeta: {
+                    name: 'ADMIN',
+                    color: '#2e7d32',
+                    avatarIcon: 'person'
+                }
+            });
+        }
+
+        function renderChannelsFeed() {
+            const channelsWindow = document.getElementById('channels-window');
+            if (!channelsWindow) return;
+            channelsWindow.innerHTML = '';
+            for (const entry of []) {
+                appendChannelMessageToDom(entry);
+            }
         }
 
         function renderChat(key) {
@@ -3006,6 +3215,7 @@
             document.getElementById('syncContactsBtn').classList.toggle('hidden', !_conn);
             document.getElementById('addContactBtn').classList.toggle('hidden', !_conn);
             document.getElementById('advertBtn').classList.toggle('hidden', !_conn);
+            document.getElementById('clearChannelsBtn').classList.add('hidden');
 
             // If we're connected but still haven't received any contacts, keep showing the spinner.
             setContactsLoading(_conn && contacts.size === 0, 'Waiting for contacts...');
@@ -3202,19 +3412,29 @@
 
         function switchMainTab(tab) {
             const contactsTab = document.getElementById('contactsTabContent');
+            const channelsTab = document.getElementById('channelsTabContent');
             const mapTab = document.getElementById('mapTabContent');
             const navContacts = document.getElementById('navTabContacts');
+            const navChannels = document.getElementById('navTabChannels');
             const navMap = document.getElementById('navTabMap');
-            
+
+            if (tab === 'channels') {
+                openChannelsChat();
+                return;
+            }
+
+            contactsTab.classList.add('hidden');
+            channelsTab.classList.add('hidden');
+            mapTab.classList.add('hidden');
+            navContacts.classList.remove('active');
+            navChannels.classList.remove('active');
+            navMap.classList.remove('active');
+
             if (tab === 'contacts') {
                 contactsTab.classList.remove('hidden');
-                mapTab.classList.add('hidden');
                 navContacts.classList.add('active');
-                navMap.classList.remove('active');
             } else {
-                contactsTab.classList.add('hidden');
                 mapTab.classList.remove('hidden');
-                navContacts.classList.remove('active');
                 navMap.classList.add('active');
                 
                 if (!worldMap) {
@@ -3245,7 +3465,9 @@
             document.getElementById('terminal').classList.add('hidden');
             document.getElementById('backBtn').classList.remove('hidden');
 
-            unreadCounts.set(key, 0);
+            if (key !== CHANNELS_KEY) {
+                unreadCounts.set(key, 0);
+            }
 
             // Header mode: chat (show selected contact instead of status/connect UI)
             document.querySelector('.header-title').classList.add('hidden');
@@ -3255,13 +3477,21 @@
             document.getElementById('syncContactsBtn').classList.add('hidden');
             document.getElementById('addContactBtn').classList.add('hidden');
             document.getElementById('advertBtn').classList.add('hidden');
+            document.getElementById('clearChannelsBtn').classList.toggle('hidden', key !== CHANNELS_KEY);
 
             const c = contacts.get(key);
-            document.getElementById('chatHeaderName').textContent = c?.name || 'Chat';
-            document.getElementById('chatHeaderSub').textContent = c?.pubkey ? formatPubkey(c.pubkey) : '';
+            if (key === CHANNELS_KEY) {
+                document.getElementById('chatHeaderName').textContent = 'CHANNELS';
+                document.getElementById('chatHeaderSub').textContent = getChannelsNetworkKeyText();
+            } else {
+                document.getElementById('chatHeaderName').textContent = c?.name || 'Chat';
+                document.getElementById('chatHeaderSub').textContent = c?.pubkey ? formatPubkey(c.pubkey) : '';
+            }
             const chatAvatar = document.getElementById('chatAvatar');
-            chatAvatar.style.background = c?.color || hashColor(key);
-            if (String(c?.type) === '2') {
+            chatAvatar.style.background = key === CHANNELS_KEY ? '#607d8b' : (c?.color || hashColor(key));
+            if (key === CHANNELS_KEY) {
+                chatAvatar.innerHTML = `<i class="material-icons" aria-hidden="true">groups</i>`;
+            } else if (String(c?.type) === '2') {
                 chatAvatar.innerHTML = `<i class="material-icons" aria-hidden="true">cell_tower</i>`;
             } else {
                 chatAvatar.textContent = (c?.name || '?').trim().slice(0, 1).toUpperCase();
@@ -3272,6 +3502,23 @@
 
             renderChat(key);
             document.getElementById('at-input').focus();
+        }
+
+        async function openChannelsChat() {
+            showChat(CHANNELS_KEY);
+
+            if (!charTX || !isBleConnected()) return;
+
+            const subEl = document.getElementById('chatHeaderSub');
+            if (subEl) subEl.textContent = 'Loading...';
+
+            try {
+                await commandQueue.enqueue('AT+NWKKEY?\r\n', { timeout: 3000, retries: 0 });
+            } finally {
+                if (activeKey === CHANNELS_KEY && subEl) {
+                    subEl.textContent = getChannelsNetworkKeyText();
+                }
+            }
         }
 
         function showTerminal() {
@@ -3296,6 +3543,7 @@
             document.getElementById('syncContactsBtn').classList.add('hidden');
             document.getElementById('addContactBtn').classList.add('hidden');
             document.getElementById('advertBtn').classList.add('hidden');
+            document.getElementById('clearChannelsBtn').classList.add('hidden');
             
             document.getElementById('headerTitle').textContent = 'Terminal';
             document.getElementById('terminal-input').focus();
@@ -3712,6 +3960,7 @@
                 const isDeviceResponse = devicePrefix && incomingPrefix.toUpperCase() === devicePrefix.toUpperCase();
                 
                 if (isDeviceResponse) {
+                    addChannelFeedMessageByPrefix(incomingPrefix, messageText, isErrorMsg ? 'error' : 'esp', new Date());
                     // Route to device info handler instead of contact
                     console.log("[HANDLE] Prefix matches device, routing to device info: prefix=", incomingPrefix, "message=", messageText.substring(0, 60));
                     handleDeviceInfoResponse(messageText, incomingPrefix);
@@ -3814,6 +4063,7 @@
 
                     // Do not push path-control responses into chat/unread counters
                     if (isPathControlResponse) {
+                        addChannelFeedMessage(routeKey, messageText, 'esp', new Date());
                         return;
                     }
 
@@ -3832,6 +4082,7 @@
                     }
                     
                     const messageId = addMessage(messageText, messageType, routeKey);
+                    addChannelFeedMessage(routeKey, messageText, messageType, new Date());
                     if (messageType === 'esp' && messageId) {
                         captureIncomingMessageSignalInfo(routeKey, messageId);
                     }
@@ -3844,6 +4095,8 @@
                     }
                 } else {
                     console.log("[HANDLE] No matching contact found for prefix:", incomingPrefix, "adding to system log");
+                    const unknownType = isSendError700 ? 'sendError' : (isErrorMsg ? 'error' : 'esp');
+                    addChannelFeedMessageByPrefix(incomingPrefix, messageText, unknownType, new Date());
                     // Try to route to device info if it's a device response without @prefix match
                     if (messageText.startsWith('+SYSSTATUS:') || messageText.startsWith('+SYSID:') || 
                         messageText.startsWith('+SYSPUBK:') || messageText.startsWith('+NWKKEY:') ||
@@ -3886,6 +4139,10 @@
             if (category.type === 'simple') {
                 console.log("[HANDLE] Simple response:", trimmed);
                 // Simple acknowledgments - generally handled by the command queue
+                const inChannelsScreen = !document.getElementById('chat').classList.contains('hidden') && activeKey === CHANNELS_KEY;
+                if (trimmed === 'OK' && inChannelsScreen) {
+                    addAdminChannelMessage('Done', 'esp', new Date());
+                }
                 if (trimmed === 'ERROR') {
                     addMessage('Command failed', 'sys', SYSTEM_KEY);
                 }
@@ -3931,6 +4188,10 @@
             if (trimmed.startsWith('+NWKKEY:')) {
                 const value = trimmed.slice('+NWKKEY:'.length).trim();
                 deviceInfo.networkKey = value;
+                if (activeKey === CHANNELS_KEY && !document.getElementById('chat').classList.contains('hidden')) {
+                    const subEl = document.getElementById('chatHeaderSub');
+                    if (subEl) subEl.textContent = getChannelsNetworkKeyText();
+                }
                 if (currentSyncSection === 'info') flashGreen('info');
                 return;
             }
@@ -4182,6 +4443,7 @@
                     const isViewingChat = !document.getElementById('chat').classList.contains('hidden');
                     const isCurrent = isViewingChat && activeKey === routeKey;
                     const messageId = addMessage(trimmed, 'esp', routeKey);
+                    addChannelFeedMessage(routeKey, trimmed, 'esp', new Date());
                     if (messageId) {
                         captureIncomingMessageSignalInfo(routeKey, messageId);
                     }
@@ -4189,6 +4451,7 @@
                     return;
                 }
                 // BLE prefix present but no matching contact → show as plain text
+                addChannelFeedMessageByPrefix(blePrefix, trimmed, 'esp', new Date());
                 addMessage(trimmed, 'esp', activeKey || SYSTEM_KEY);
                 return;
             }
@@ -4206,6 +4469,7 @@
                         const isViewingChat = !document.getElementById('chat').classList.contains('hidden');
                         const isCurrent = isViewingChat && activeKey === routeKey;
                         const messageId = addMessage(msgText || trimmed, 'esp', routeKey);
+                        addChannelFeedMessage(routeKey, msgText || trimmed, 'esp', new Date());
                         if (messageId) {
                             captureIncomingMessageSignalInfo(routeKey, messageId);
                         }
@@ -4214,6 +4478,7 @@
                     }
                     // Strip @prefix even if contact not found
                     if (msgText) {
+                        addChannelFeedMessageByPrefix(potentialPrefix, msgText, 'esp', new Date());
                         addMessage(msgText, 'esp', activeKey || SYSTEM_KEY);
                         return;
                     }
@@ -4469,11 +4734,17 @@
             }
 
             try {
-                const prefix = pubkeyPrefix(activeKey);
-                const outgoing = `${val}@${prefix}\r\n`;
+                const isChannelsChat = activeKey === CHANNELS_KEY;
+                const outgoing = isChannelsChat
+                    ? `${val}\r\n`
+                    : `${val}@${pubkeyPrefix(activeKey)}\r\n`;
                 
                 // Hiển thị tin nhắn gửi đi lên màn hình NGAY LẬP TỨC (trước khi gửi xuống thiết bị)
-                addMessage(val, "me", activeKey);
+                if (isChannelsChat) {
+                    addAdminChannelMessage(val, 'me', new Date());
+                } else {
+                    addMessage(val, "me", activeKey);
+                }
                 input.value = "";
                 
                 // Sau đó mới gửi xuống thiết bị không chặn luồng hiển thị
@@ -4551,14 +4822,16 @@
             const inputEl = document.getElementById(inputId);
             const ac = document.getElementById(acId);
             const query = inputEl.value.toUpperCase();
+            const inChannelsChat = inputId === 'at-input' && activeKey === CHANNELS_KEY;
+            const sourceCommands = inChannelsChat ? CHANNELS_AT_COMMANDS : AT_COMMANDS;
             
             let matches = [];
             if (!query) {
                 // If empty, show first 20 commands or maybe just AT+
-                matches = AT_COMMANDS.slice(0, 50);
+                matches = sourceCommands.slice(0, 50);
             } else {
-                const exact   = AT_COMMANDS.filter(c => c.toUpperCase().startsWith(query));
-                const partial = AT_COMMANDS.filter(c => !c.toUpperCase().startsWith(query) && c.toUpperCase().includes(query));
+                const exact   = sourceCommands.filter(c => c.toUpperCase().startsWith(query));
+                const partial = sourceCommands.filter(c => !c.toUpperCase().startsWith(query) && c.toUpperCase().includes(query));
                 matches = [...exact, ...partial].slice(0, 50); 
             }
             
@@ -5927,6 +6200,12 @@
             'AT+GPSSYNC',
             'AT+GPSLOC=lat,lon',
             'AT+GPSLOC?'
+        ];
+
+        const CHANNELS_AT_COMMANDS = [
+            'AT+SYSWARN=level',
+            'AT+SYSWARNEND',
+            'AT+SYSSTTALL?'
         ];
 
         // Close popups on outside click
