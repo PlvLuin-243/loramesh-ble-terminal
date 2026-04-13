@@ -1423,7 +1423,7 @@
                 <i class="material-icons" aria-hidden="true">settings</i>
             </button>
 
-            <button id="clearChannelsBtn" class="btn-icon hidden" type="button" onclick="clearChannelsMessages()" title="Clear channels messages">
+            <button id="clearChannelsBtn" class="btn-icon hidden" type="button" onclick="clearCurrentChatMessages()" title="Clear messages">
                 <i class="material-icons" aria-hidden="true">delete</i>
             </button>
         </div>
@@ -2521,7 +2521,7 @@
 
                 const main = document.createElement('div');
                 main.className = 'msg-main';
-                main.textContent = entry.text;
+                main.textContent = formatChannelMessageForDisplay(entry.text);
 
                 const time = document.createElement('div');
                 time.className = 'msg-time';
@@ -2537,6 +2537,70 @@
                     row.classList.add('clickable');
                     row.title = 'Click to fetch RSSI/SNR/Distance';
                     row.addEventListener('click', () => requestChannelSignalInfo(entry.channelMeta));
+                }
+
+                chatWindow.appendChild(row);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+                return;
+            }
+
+            const isContactChat = key && key !== SYSTEM_KEY && key !== CHANNELS_KEY;
+            if (isContactChat && ['me', 'esp', 'error', 'sendError'].includes(entry.type || '')) {
+                const c = contacts.get(key) || {};
+                const isMe = (entry.type === 'me');
+                const senderName = isMe ? 'ADMIN' : (c.name || 'Unknown');
+                const senderColor = isMe ? '#2e7d32' : (c.color || hashColor(key || senderName));
+                const senderPrefix = pubkeyPrefix(key) || '';
+
+                const row = document.createElement('div');
+                row.className = 'channel-row';
+                if (isMe) row.classList.add('admin');
+
+                const avatar = document.createElement('div');
+                avatar.className = 'channel-avatar';
+                avatar.style.background = senderColor;
+                if (isMe) {
+                    avatar.innerHTML = `<i class="material-icons" aria-hidden="true">person</i>`;
+                } else if (String(c.type) === '2') {
+                    avatar.innerHTML = `<i class="material-icons" aria-hidden="true">cell_tower</i>`;
+                } else {
+                    avatar.textContent = String(senderName || '?').trim().slice(0, 1).toUpperCase() || '?';
+                }
+
+                const content = document.createElement('div');
+                content.className = 'channel-content';
+                if (entry.type === 'error' || entry.type === 'sendError') {
+                    if (isMe) content.style.borderRightColor = '#cc0000';
+                    else content.style.borderLeftColor = '#cc0000';
+                }
+
+                const nameEl = document.createElement('div');
+                nameEl.className = 'channel-name';
+                nameEl.style.color = senderColor;
+                nameEl.textContent = senderName;
+
+                const main = document.createElement('div');
+                main.className = 'msg-main';
+                main.textContent = isMe ? entry.text : formatChannelMessageForDisplay(entry.text);
+
+                const time = document.createElement('div');
+                time.className = 'msg-time';
+                time.textContent = formatMessageTime(entry.ts);
+
+                content.appendChild(nameEl);
+                content.appendChild(main);
+                content.appendChild(time);
+                row.appendChild(avatar);
+                row.appendChild(content);
+
+                if (!isMe && senderPrefix) {
+                    row.classList.add('clickable');
+                    row.title = 'Click to fetch RSSI/SNR/Distance';
+                    row.addEventListener('click', () => requestChannelSignalInfo({
+                        name: senderName,
+                        color: senderColor,
+                        prefix: senderPrefix
+                    }));
                 }
 
                 chatWindow.appendChild(row);
@@ -2579,10 +2643,11 @@
             return networkKey || '—';
         }
 
-        function clearChannelsMessages() {
-            histories.set(CHANNELS_KEY, []);
-            if (activeKey === CHANNELS_KEY && !document.getElementById('chat').classList.contains('hidden')) {
-                renderChat(CHANNELS_KEY);
+        function clearCurrentChatMessages() {
+            if (!activeKey) return;
+            histories.set(activeKey, []);
+            if (!document.getElementById('chat').classList.contains('hidden')) {
+                renderChat(activeKey);
             }
         }
 
@@ -2607,7 +2672,15 @@
             channelsWindow.scrollTop = channelsWindow.scrollHeight;
         }
 
+        function isAllowedChannelsResponse(text) {
+            const raw = String(text || '').trim();
+            return /^\+SYSSTATUS:/i.test(raw)
+                || /^\+WARN\s+BEGIN:/i.test(raw)
+                || /^\+WARN\s+END\b/i.test(raw);
+        }
+
         function addChannelFeedMessage(routeKey, text, type = 'esp', ts) {
+            if (!isAllowedChannelsResponse(text)) return;
             const c = contacts.get(routeKey) || {};
             const displayName = c.name || 'Unknown';
             const color = c.color || hashColor(routeKey || displayName);
@@ -2624,6 +2697,7 @@
         }
 
         function addChannelFeedMessageByPrefix(prefix, text, type = 'esp', ts) {
+            if (!isAllowedChannelsResponse(text)) return;
             const routeKey = contactKeyByPrefix(prefix);
             if (routeKey) {
                 addChannelFeedMessage(routeKey, text, type, ts);
@@ -3571,7 +3645,9 @@
             document.getElementById('syncContactsBtn').classList.add('hidden');
             document.getElementById('addContactBtn').classList.add('hidden');
             document.getElementById('advertBtn').classList.add('hidden');
-            document.getElementById('clearChannelsBtn').classList.toggle('hidden', key !== CHANNELS_KEY);
+            const clearBtn = document.getElementById('clearChannelsBtn');
+            clearBtn.classList.remove('hidden');
+            clearBtn.title = key === CHANNELS_KEY ? 'Clear channels messages' : 'Clear contact messages';
 
             const c = contacts.get(key);
             if (key === CHANNELS_KEY) {
