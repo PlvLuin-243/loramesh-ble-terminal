@@ -315,6 +315,14 @@
             margin-left: auto;
             flex-shrink: 0;
         }
+        .settings-list .item.field-editable .gps-current-location-icon {
+            margin-left: auto;
+            flex-shrink: 0;
+            padding-right: 4px;
+        }
+        .settings-list .item.field-editable .gps-current-location-icon + .edit-icon {
+            margin-left: 0;
+        }
         .editable {
             cursor: pointer;
             padding: 4px 8px;
@@ -1623,6 +1631,7 @@
                         <div class="field-label">Location</div>
                         <div class="item field-editable">
                             <span class="value" id="gpsLocation">N/A</span>
+                            <i id="gpsLocationAutoIcon" class="material-icons edit-icon gps-current-location-icon" onclick="setDeviceGPSLocationFromBrowser()" title="Use current web/device location">my_location</i>
                             <i class="material-icons edit-icon" onclick="openEditGPSLocationModal()" title="Edit GPS Location">edit</i>
                         </div>
                     </div>
@@ -3009,6 +3018,93 @@
             document.getElementById('submitGPSLocationBtn').onclick = submitEditGPSLocation;
         }
 
+        function parseGPSLocationInput(locationStr) {
+            const parts = locationStr.split(',');
+            if (parts.length !== 2) {
+                throw new Error('Location must be in format: lat,lon (e.g., 16.073976,108.150309)');
+            }
+
+            const lat = parts[0].trim();
+            const lon = parts[1].trim();
+            const latNum = parseFloat(lat);
+            const lonNum = parseFloat(lon);
+
+            if (isNaN(latNum) || isNaN(lonNum)) {
+                throw new Error('Latitude and longitude must be valid numbers');
+            }
+            if (latNum < -90 || latNum > 90) {
+                throw new Error('Latitude must be between -90 and 90');
+            }
+            if (lonNum < -180 || lonNum > 180) {
+                throw new Error('Longitude must be between -180 and 180');
+            }
+
+            return {
+                lat: latNum.toFixed(6),
+                lon: lonNum.toFixed(6)
+            };
+        }
+
+        async function sendDeviceGPSLocation(lat, lon) {
+            if (!charTX || !isBleConnected()) {
+                throw new Error('Not connected to device');
+            }
+
+            const atCommand = `AT+GPSLOC=${lat},${lon}\r\n`;
+            await commandQueue.enqueue(atCommand, { timeout: 3000 });
+
+            document.getElementById('gpsLocation').textContent = `${lat},${lon}`;
+            deviceInfo.gpsLat = lat;
+            deviceInfo.gpsLon = lon;
+            addMessage(`GPS location updated: ${lat},${lon}`, 'sys', SYSTEM_KEY);
+        }
+
+        async function setDeviceGPSLocationFromBrowser() {
+            if (!navigator.geolocation) {
+                showErrorNotification('Geolocation is not supported on this browser');
+                return;
+            }
+
+            const icon = document.getElementById('gpsLocationAutoIcon');
+            if (icon && icon.dataset.loading === '1') {
+                return;
+            }
+
+            try {
+                if (icon) {
+                    icon.dataset.loading = '1';
+                    icon.style.pointerEvents = 'none';
+                    icon.textContent = 'hourglass_top';
+                }
+
+                const position = await new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 0
+                    });
+                });
+
+                const lat = position.coords.latitude.toFixed(6);
+                const lon = position.coords.longitude.toFixed(6);
+                await sendDeviceGPSLocation(lat, lon);
+            } catch (err) {
+                let errorMessage = err?.message || 'Unable to get current location';
+                if (typeof err?.code === 'number') {
+                    if (err.code === 1) errorMessage = 'Location permission denied';
+                    if (err.code === 2) errorMessage = 'Location unavailable';
+                    if (err.code === 3) errorMessage = 'Location request timed out';
+                }
+                showErrorNotification('Error: ' + errorMessage);
+            } finally {
+                if (icon) {
+                    icon.dataset.loading = '0';
+                    icon.style.pointerEvents = '';
+                    icon.textContent = 'my_location';
+                }
+            }
+        }
+
         /**
          * Submit edited GPS location (for device info)
          */
@@ -3020,31 +3116,14 @@
                 return;
             }
             
-            // Parse lat,lon
-            const parts = locationStr.split(',');
-            if (parts.length !== 2) {
-                showErrorNotification('Location must be in format: lat,lon (e.g., 16.073976,108.150309)');
-                return;
-            }
-            
-            const lat = parts[0].trim();
-            const lon = parts[1].trim();
-            
-            // Validate that inputs are valid numbers
-            const latNum = parseFloat(lat);
-            const lonNum = parseFloat(lon);
-            if (isNaN(latNum) || isNaN(lonNum)) {
-                showErrorNotification('Latitude and longitude must be valid numbers');
-                return;
-            }
-            
-            // Validate ranges
-            if (latNum < -90 || latNum > 90) {
-                showErrorNotification('Latitude must be between -90 and 90');
-                return;
-            }
-            if (lonNum < -180 || lonNum > 180) {
-                showErrorNotification('Longitude must be between -180 and 180');
+            let lat = '';
+            let lon = '';
+            try {
+                const parsed = parseGPSLocationInput(locationStr);
+                lat = parsed.lat;
+                lon = parsed.lon;
+            } catch (err) {
+                showErrorNotification(err.message);
                 return;
             }
             
@@ -3052,20 +3131,7 @@
             document.getElementById('submitGPSLocationBtn').innerHTML = '<div class="spinner-small"></div> Sending...';
             
             try {
-                if (!charTX || !isBleConnected()) {
-                    throw new Error('Not connected to device');
-                }
-                
-                // Send AT+GPSLOC command
-                const atCommand = `AT+GPSLOC=${lat},${lon}\r\n`;
-                await commandQueue.enqueue(atCommand, { timeout: 3000 });
-                
-                // Update UI with new location
-                document.getElementById('gpsLocation').textContent = `${lat},${lon}`;
-                deviceInfo.gpsLat = lat;
-                deviceInfo.gpsLon = lon;
-                
-                addMessage(`GPS location updated: ${lat},${lon}`, 'sys', SYSTEM_KEY);
+                await sendDeviceGPSLocation(lat, lon);
                 closeEditGPSLocationModal();
             } catch (err) {
                 showErrorNotification('Error: ' + err.message);
