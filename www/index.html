@@ -595,6 +595,109 @@
         .map-focus-btn { bottom: 88px; }
         .map-sync-btn { bottom: 24px; }
 
+        #setLocation {
+            background: #fff;
+            padding: 10px;
+            gap: 10px;
+        }
+
+        .set-location-search {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .set-location-search input {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid #d6dde6;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .set-location-search input:focus {
+            border-color: #1976d2;
+            box-shadow: 0 0 0 2px rgba(25,118,210,0.16);
+        }
+
+        #setLocationMap {
+            width: 100%;
+            flex: 1;
+            height: 56vh;
+            min-height: 320px;
+            border-radius: 12px;
+            border: 1px solid #d9e1ea;
+            overflow: hidden;
+        }
+
+        @media (max-height: 760px) {
+            #setLocationMap {
+                height: 50vh;
+                min-height: 270px;
+            }
+        }
+
+        #setLocationResults {
+            max-height: 22vh;
+            overflow-y: auto;
+            border: 1px solid #e5e9ef;
+            border-radius: 10px;
+            background: #fbfcfd;
+        }
+
+        .set-location-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eef2f6;
+            cursor: pointer;
+            font-size: 13px;
+            line-height: 1.35;
+            color: #263238;
+        }
+
+        .set-location-item:last-child {
+            border-bottom: none;
+        }
+
+        .set-location-item:active,
+        .set-location-item:hover {
+            background: #eef5ff;
+        }
+
+        #setLocationStatus {
+            font-size: 12px;
+            color: #607d8b;
+            min-height: 18px;
+        }
+
+        .set-location-manual {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: stretch;
+        }
+
+        .set-location-manual input {
+            width: 100%;
+            border: 1px solid #d6dde6;
+            border-radius: 10px;
+            padding: 10px 12px;
+            font-size: 14px;
+            outline: none;
+            font-family: 'Courier New', monospace;
+        }
+
+        .set-location-manual .btn-primary {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .set-location-manual input:focus {
+            border-color: #1976d2;
+            box-shadow: 0 0 0 2px rgba(25,118,210,0.16);
+        }
+
         .contact-list {
             display: flex;
             flex-direction: column;
@@ -1918,6 +2021,25 @@
         <div id="log-console-window" aria-label="BLE TX RX log output"></div>
     </div>
 
+    <!-- Screen 2.7: Set Location -->
+    <div id="setLocation" class="screen hidden">
+        <div class="set-location-search">
+            <input type="text" id="setLocationSearchInput" placeholder="Search location on map..." autocomplete="off" spellcheck="false" />
+            <button id="setLocationSearchBtn" class="btn-icon" type="button" title="Search location">
+                <i class="material-icons">search</i>
+            </button>
+        </div>
+        <div id="setLocationMap" aria-label="Set location map"></div>
+        <div id="setLocationResults" class="hidden"></div>
+        <div id="setLocationStatus">Tap on map or search and select a location.</div>
+        <div class="set-location-manual">
+            <input type="text" id="setLocationValueInput" placeholder="lat,lon (e.g. 16.073976,108.150309)" autocomplete="off" spellcheck="false" />
+            <button id="setLocationApplyBtn" class="btn-primary" type="button" onclick="applySetLocationSelection()" disabled>
+                <i class="material-icons">check_circle</i> Set Location
+            </button>
+        </div>
+    </div>
+
     <!-- Screen 4: Contact Info -->
     <div id="contactInfo" class="screen hidden">
         <div class="settings-root">
@@ -2187,6 +2309,15 @@
         let bleScanListener = null;
         let bleScanDevices = new Map();
         let bleBeforeScreen = 'contacts';
+        let setLocationMap = null;
+        let setLocationMarker = null;
+        let setLocationSelected = null; // {lat, lon, label}
+        let setLocationInputDebounceTimer = null;
+        let setLocationContext = {
+            mode: 'device', // 'device' | 'contact'
+            returnScreen: 'settings',
+            contactPrefix: ''
+        };
 
         function isNativeBleRuntime() {
             return Boolean(window.Capacitor?.isNativePlatform?.() && window.Capacitor?.Plugins?.BluetoothLe);
@@ -2261,6 +2392,7 @@
             if (!document.getElementById('contactInfo').classList.contains('hidden')) return 'contactInfo';
             if (!document.getElementById('terminal').classList.contains('hidden')) return 'terminal';
             if (!document.getElementById('logConsole').classList.contains('hidden')) return 'logConsole';
+            if (!document.getElementById('setLocation').classList.contains('hidden')) return 'setLocation';
             return 'contacts';
         }
 
@@ -2269,12 +2401,80 @@
                 closeBleScanScreen();
                 return;
             }
+            if (!document.getElementById('setLocation').classList.contains('hidden')) {
+                exitSetLocationAndSync();
+                return;
+            }
             if (!document.getElementById('terminal').classList.contains('hidden') ||
                 !document.getElementById('logConsole').classList.contains('hidden')) {
                 showPreviousScreen();
                 return;
             }
             showContacts();
+        }
+
+        function exitSetLocationAndSync() {
+            const mode = setLocationContext.mode;
+            const returnScreen = setLocationContext.returnScreen;
+            const contactPrefix = String(setLocationContext.contactPrefix || '').toLowerCase();
+
+            if (mode === 'contact' || returnScreen === 'contactInfo') {
+                let targetContact = null;
+                for (const [pk, c] of contacts) {
+                    const pkPrefix = String(pubkeyPrefix(pk) || '').toLowerCase();
+                    const macPrefix = String(c?.macAddress || '').toLowerCase();
+                    if ((contactPrefix && pkPrefix === contactPrefix) ||
+                        (contactPrefix && macPrefix === contactPrefix)) {
+                        targetContact = c;
+                        break;
+                    }
+                }
+
+                if (targetContact) {
+                    showContactInfo(targetContact);
+                    if (charTX && isBleConnected()) requestContactInfoSection();
+                } else {
+                    showContacts();
+                }
+                return;
+            }
+
+            showSettings(true);
+            if (charTX && isBleConnected()) requestGPSSection();
+        }
+
+        function hasVisibleBackButton() {
+            const backBtn = document.getElementById('backBtn');
+            return !!backBtn && !backBtn.classList.contains('hidden');
+        }
+
+        function initAndroidBackButtonHandler() {
+            const handleBack = () => {
+                if (!document.getElementById('bleScanOverlay').classList.contains('hidden') || hasVisibleBackButton()) {
+                    onHeaderBack();
+                    return true;
+                }
+                return false;
+            };
+
+            const capApp = window.Capacitor?.Plugins?.App;
+            if (window.Capacitor?.isNativePlatform?.() && capApp?.addListener) {
+                capApp.addListener('backButton', ({ canGoBack }) => {
+                    if (handleBack()) return;
+                    if (canGoBack) {
+                        window.history.back();
+                        return;
+                    }
+                    capApp.exitApp();
+                });
+                return;
+            }
+
+            // Fallback for environments exposing Cordova backbutton event.
+            document.addEventListener('backbutton', (event) => {
+                if (!handleBack()) return;
+                if (event?.preventDefault) event.preventDefault();
+            }, false);
         }
 
         function showBleScanScreen() {
@@ -3420,20 +3620,7 @@
          * Open edit GPS location modal
          */
         function openEditGPSLocationModal() {
-            const currentLat = deviceInfo.gpsLat || 'N/A';
-            const currentLon = deviceInfo.gpsLon || 'N/A';
-            let locationStr = '';
-            if (currentLat !== 'N/A' && currentLon !== 'N/A') {
-                locationStr = `${currentLat},${currentLon}`;
-            }
-            
-            document.getElementById('editGPSLocationInput').value = locationStr;
-            document.getElementById('editGPSLocationInput').disabled = false;
-            document.getElementById('submitGPSLocationBtn').disabled = false;
-            document.getElementById('submitGPSLocationBtn').innerHTML = '<i class="material-icons">check</i> Send';
-            
-            document.getElementById('editGPSLocationModal').classList.remove('hidden');
-            document.getElementById('editGPSLocationInput').focus();
+            showSetLocationScreen('device');
         }
 
         /**
@@ -3444,23 +3631,7 @@
                 showErrorNotification('No contact selected');
                 return;
             }
-            
-            const contactData = contactInfoCache.get(currentContactInfoPrefix) || {};
-            const currentLat = contactData.lat || 'N/A';
-            const currentLon = contactData.lon || 'N/A';
-            let locationStr = '';
-            if (currentLat !== 'N/A' && currentLon !== 'N/A') {
-                locationStr = `${currentLat},${currentLon}`;
-            }
-            
-            document.getElementById('editGPSLocationInput').value = locationStr;
-            document.getElementById('editGPSLocationInput').disabled = false;
-            document.getElementById('submitGPSLocationBtn').disabled = false;
-            document.getElementById('submitGPSLocationBtn').innerHTML = '<i class="material-icons">check</i> Send';
-            document.getElementById('submitGPSLocationBtn').onclick = submitEditContactGPSLocation;
-            
-            document.getElementById('editGPSLocationModal').classList.remove('hidden');
-            document.getElementById('editGPSLocationInput').focus();
+            showSetLocationScreen('contact');
         }
 
         /**
@@ -3470,6 +3641,286 @@
             document.getElementById('editGPSLocationModal').classList.add('hidden');
             document.getElementById('editGPSLocationInput').value = '';
             document.getElementById('submitGPSLocationBtn').onclick = submitEditGPSLocation;
+        }
+
+        function getSetLocationInitialCoords(mode) {
+            if (mode === 'contact') {
+                const contactData = contactInfoCache.get(currentContactInfoPrefix) || contactInfoData || {};
+                if (contactData.lat && contactData.lon) {
+                    return { lat: Number(contactData.lat), lon: Number(contactData.lon) };
+                }
+                if (contactData.gps && contactData.gps !== 'N/A') {
+                    const parts = String(contactData.gps).split(',').map(v => v.trim());
+                    if (parts.length >= 2) {
+                        const lat = Number(parts[0]);
+                        const lon = Number(parts[1]);
+                        if (!isNaN(lat) && !isNaN(lon)) return { lat, lon };
+                    }
+                }
+                return null;
+            }
+
+            const lat = Number(deviceInfo.gpsLat);
+            const lon = Number(deviceInfo.gpsLon);
+            if (!isNaN(lat) && !isNaN(lon) && !(lat === 0 && lon === 0)) {
+                return { lat, lon };
+            }
+            return null;
+        }
+
+        function initSetLocationMap() {
+            if (setLocationMap) return;
+            setLocationMap = L.map('setLocationMap', { zoomControl: true }).setView([10.762622, 106.660172], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(setLocationMap);
+
+            setLocationMap.on('click', (evt) => {
+                const lat = Number(evt.latlng.lat).toFixed(6);
+                const lon = Number(evt.latlng.lng).toFixed(6);
+                setSelectedLocation(lat, lon, `Pinned: ${lat}, ${lon}`);
+            });
+        }
+
+        function setSelectedLocation(lat, lon, label = '') {
+            const latNum = Number(lat);
+            const lonNum = Number(lon);
+            if (isNaN(latNum) || isNaN(lonNum)) return;
+
+            setLocationSelected = {
+                lat: latNum.toFixed(6),
+                lon: lonNum.toFixed(6),
+                label: label || `${latNum.toFixed(6)}, ${lonNum.toFixed(6)}`
+            };
+
+            const redIcon = L.divIcon({
+                html: '<i class="material-icons" style="color:#e53935;font-size:34px;text-shadow:1px 1px 3px rgba(0,0,0,0.35);">location_on</i>',
+                className: 'custom-map-icon',
+                iconSize: [34, 34],
+                iconAnchor: [17, 34]
+            });
+
+            if (setLocationMarker) {
+                setLocationMarker.setLatLng([latNum, lonNum]);
+                setLocationMarker.setIcon(redIcon);
+            } else {
+                setLocationMarker = L.marker([latNum, lonNum], { icon: redIcon }).addTo(setLocationMap);
+            }
+
+            setLocationMap.setView([latNum, lonNum], Math.max(setLocationMap.getZoom() || 15, 15), { animate: true });
+            const applyBtn = document.getElementById('setLocationApplyBtn');
+            if (applyBtn) applyBtn.disabled = false;
+            const valueInput = document.getElementById('setLocationValueInput');
+            if (valueInput) valueInput.value = `${setLocationSelected.lat},${setLocationSelected.lon}`;
+            const status = document.getElementById('setLocationStatus');
+            if (status) status.textContent = setLocationSelected.label;
+        }
+
+        function previewSetLocationFromInput() {
+            const input = document.getElementById('setLocationValueInput');
+            if (!input) return;
+
+            const raw = String(input.value || '').trim();
+            if (!raw) {
+                const applyBtn = document.getElementById('setLocationApplyBtn');
+                if (applyBtn) applyBtn.disabled = !setLocationSelected;
+                return;
+            }
+
+            try {
+                const parsed = parseGPSLocationInput(raw);
+                setSelectedLocation(parsed.lat, parsed.lon, `Manual: ${parsed.lat}, ${parsed.lon}`);
+            } catch {
+                // Keep silent while user is typing incomplete value.
+            }
+        }
+
+        async function searchSetLocation() {
+            const input = document.getElementById('setLocationSearchInput');
+            const query = String(input?.value || '').trim();
+            const resultsEl = document.getElementById('setLocationResults');
+            const status = document.getElementById('setLocationStatus');
+            if (!resultsEl || !status) return;
+
+            if (!query) {
+                resultsEl.classList.add('hidden');
+                resultsEl.innerHTML = '';
+                status.textContent = 'Please enter a location keyword.';
+                return;
+            }
+
+            status.textContent = 'Searching location...';
+            resultsEl.classList.remove('hidden');
+            resultsEl.innerHTML = '<div class="set-location-item">Searching...</div>';
+
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&q=${encodeURIComponent(query)}`;
+                const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                if (!resp.ok) throw new Error('Search service unavailable');
+                const data = await resp.json();
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    resultsEl.innerHTML = '<div class="set-location-item">No results found.</div>';
+                    status.textContent = 'No matching location.';
+                    return;
+                }
+
+                resultsEl.innerHTML = '';
+                data.forEach((item) => {
+                    const lat = Number(item.lat);
+                    const lon = Number(item.lon);
+                    if (isNaN(lat) || isNaN(lon)) return;
+
+                    const row = document.createElement('div');
+                    row.className = 'set-location-item';
+                    row.textContent = item.display_name || `${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+                    row.addEventListener('click', () => {
+                        setSelectedLocation(lat, lon, row.textContent);
+                    });
+                    resultsEl.appendChild(row);
+                });
+
+                status.textContent = 'Select a result or tap directly on map.';
+            } catch (err) {
+                resultsEl.innerHTML = '<div class="set-location-item">Search failed. Please try again.</div>';
+                status.textContent = `Error: ${err?.message || err}`;
+            }
+        }
+
+        function showSetLocationScreen(mode = 'device') {
+            if (mode === 'contact' && !currentContactInfoPrefix) {
+                showErrorNotification('No contact selected');
+                return;
+            }
+
+            const fromSettings = !document.getElementById('settings').classList.contains('hidden');
+            const fromContactInfo = !document.getElementById('contactInfo').classList.contains('hidden');
+            setLocationContext = {
+                mode,
+                returnScreen: fromContactInfo ? 'contactInfo' : (fromSettings ? 'settings' : 'contacts'),
+                contactPrefix: mode === 'contact' ? String(currentContactInfoPrefix || '') : ''
+            };
+
+            document.getElementById('contacts').classList.add('hidden');
+            document.getElementById('chat').classList.add('hidden');
+            document.getElementById('settings').classList.add('hidden');
+            document.getElementById('contactInfo').classList.add('hidden');
+            document.getElementById('terminal').classList.add('hidden');
+            document.getElementById('logConsole').classList.add('hidden');
+            document.getElementById('setLocation').classList.remove('hidden');
+            document.getElementById('bleScan').classList.add('hidden');
+            document.getElementById('bleScanOverlay').classList.add('hidden');
+
+            document.getElementById('backBtn').classList.remove('hidden');
+            document.querySelector('.header-title').classList.remove('hidden');
+            document.getElementById('chatHeader').classList.add('hidden');
+            document.getElementById('connectBtn').classList.add('hidden');
+            document.getElementById('settingsBtn').classList.add('hidden');
+            document.getElementById('syncContactsBtn').classList.add('hidden');
+            document.getElementById('addContactBtn').classList.add('hidden');
+            document.getElementById('advertBtn').classList.add('hidden');
+            document.getElementById('clearChannelsBtn').classList.add('hidden');
+            document.getElementById('headerTitle').textContent = 'Set Location';
+
+            const status = document.getElementById('setLocationStatus');
+            const results = document.getElementById('setLocationResults');
+            const applyBtn = document.getElementById('setLocationApplyBtn');
+            const valueInput = document.getElementById('setLocationValueInput');
+            if (status) status.textContent = 'Tap on map or search and select a location.';
+            if (results) {
+                results.innerHTML = '';
+                results.classList.add('hidden');
+            }
+            if (valueInput) valueInput.value = '';
+            if (applyBtn) {
+                applyBtn.disabled = true;
+                applyBtn.innerHTML = '<i class="material-icons">check_circle</i> Set Location';
+            }
+            setLocationSelected = null;
+
+            initSetLocationMap();
+            setTimeout(() => {
+                if (!setLocationMap) return;
+                setLocationMap.invalidateSize();
+                const initial = getSetLocationInitialCoords(mode);
+                if (initial) {
+                    setSelectedLocation(initial.lat, initial.lon, `Current: ${Number(initial.lat).toFixed(6)}, ${Number(initial.lon).toFixed(6)}`);
+                } else {
+                    setLocationMap.setView([10.762622, 106.660172], 13);
+                    if (setLocationMarker) {
+                        setLocationMap.removeLayer(setLocationMarker);
+                        setLocationMarker = null;
+                    }
+                }
+            }, 40);
+        }
+
+        async function applySetLocationSelection() {
+            const valueInput = document.getElementById('setLocationValueInput');
+            const typedValue = String(valueInput?.value || '').trim();
+            if (typedValue) {
+                try {
+                    const parsed = parseGPSLocationInput(typedValue);
+                    setSelectedLocation(parsed.lat, parsed.lon, `Manual: ${parsed.lat}, ${parsed.lon}`);
+                } catch (err) {
+                    showErrorNotification(err.message || 'Invalid location format');
+                    return;
+                }
+            }
+
+            if (!setLocationSelected) {
+                showErrorNotification('Please select or enter a location first');
+                return;
+            }
+
+            const applyBtn = document.getElementById('setLocationApplyBtn');
+            const status = document.getElementById('setLocationStatus');
+            const lat = setLocationSelected.lat;
+            const lon = setLocationSelected.lon;
+
+            if (applyBtn) {
+                applyBtn.disabled = true;
+                applyBtn.innerHTML = '<div class="spinner-small"></div> Sending...';
+            }
+
+            try {
+                if (setLocationContext.mode === 'contact') {
+                    if (!charTX || !isBleConnected()) throw new Error('Not connected to device');
+                    if (!setLocationContext.contactPrefix) throw new Error('Missing contact prefix');
+
+                    const atCommand = `AT+GPSLOC=${lat},${lon}@${setLocationContext.contactPrefix}\r\n`;
+                    await commandQueue.enqueue(atCommand, { timeout: 8000, retries: 0 });
+
+                    if (!contactInfoCache.get(setLocationContext.contactPrefix)) {
+                        contactInfoCache.set(setLocationContext.contactPrefix, {});
+                    }
+                    const contactData = contactInfoCache.get(setLocationContext.contactPrefix);
+                    contactData.lat = lat;
+                    contactData.lon = lon;
+                    contactData.gps = `${lat},${lon}`;
+
+                    document.getElementById('ciLocation').textContent = `${lat},${lon}`;
+                    for (const [pk, c] of contacts) {
+                        if (String(pubkeyPrefix(pk) || '').toLowerCase() === String(setLocationContext.contactPrefix || '').toLowerCase()) {
+                            c.gps = `${lat},${lon}`;
+                            break;
+                        }
+                    }
+                    addMessage(`Contact GPS location updated: ${lat},${lon}`, 'sys', SYSTEM_KEY);
+                    if (status) status.textContent = `Location set successfully: ${lat}, ${lon}`;
+                } else {
+                    await sendDeviceGPSLocation(lat, lon);
+                    if (status) status.textContent = `Location set successfully: ${lat}, ${lon}`;
+                }
+                refreshMapMarkers();
+            } catch (err) {
+                showErrorNotification(`Error: ${err?.message || err}`);
+            } finally {
+                if (applyBtn) {
+                    applyBtn.disabled = false;
+                    applyBtn.innerHTML = '<i class="material-icons">check_circle</i> Set Location';
+                }
+            }
         }
 
         function parseGPSLocationInput(locationStr) {
@@ -3960,6 +4411,7 @@
             document.getElementById('contactInfo').classList.add('hidden');
             document.getElementById('terminal').classList.add('hidden');
             document.getElementById('logConsole').classList.add('hidden');
+            document.getElementById('setLocation').classList.add('hidden');
             document.getElementById('bleScan').classList.add('hidden');
             document.getElementById('bleScanOverlay').classList.add('hidden');
             document.getElementById('backBtn').classList.add('hidden');
@@ -4290,6 +4742,7 @@
             document.getElementById('contactInfo').classList.add('hidden');
             document.getElementById('terminal').classList.add('hidden');
             document.getElementById('logConsole').classList.add('hidden');
+            document.getElementById('setLocation').classList.add('hidden');
             document.getElementById('bleScan').classList.add('hidden');
             document.getElementById('bleScanOverlay').classList.add('hidden');
             document.getElementById('backBtn').classList.remove('hidden');
@@ -4332,7 +4785,7 @@
             renderContacts();
 
             renderChat(key);
-            document.getElementById('at-input').focus();
+            hideCommandAutocomplete();
         }
 
         async function openChannelsChat() {
@@ -4366,6 +4819,7 @@
             document.getElementById('contactInfo').classList.add('hidden');
             document.getElementById('terminal').classList.remove('hidden');
             document.getElementById('logConsole').classList.add('hidden');
+            document.getElementById('setLocation').classList.add('hidden');
             document.getElementById('bleScan').classList.add('hidden');
             document.getElementById('bleScanOverlay').classList.add('hidden');
             
@@ -4380,7 +4834,7 @@
             document.getElementById('clearChannelsBtn').classList.add('hidden');
             
             document.getElementById('headerTitle').textContent = 'Terminal';
-            document.getElementById('terminal-input').focus();
+            hideCommandAutocomplete();
         }
 
         function showLogConsole() {
@@ -4396,6 +4850,7 @@
             document.getElementById('contactInfo').classList.add('hidden');
             document.getElementById('terminal').classList.add('hidden');
             document.getElementById('logConsole').classList.remove('hidden');
+            document.getElementById('setLocation').classList.add('hidden');
             document.getElementById('bleScan').classList.add('hidden');
             document.getElementById('bleScanOverlay').classList.add('hidden');
 
@@ -5912,6 +6367,19 @@
             ac.classList.remove('hidden');
         }
 
+        function hideCommandAutocomplete() {
+            const atAc = document.getElementById('atAutocomplete');
+            if (atAc) {
+                atAc.classList.add('hidden');
+                atAc.innerHTML = '';
+            }
+            const terminalAc = document.getElementById('terminalAutocomplete');
+            if (terminalAc) {
+                terminalAc.classList.add('hidden');
+                terminalAc.innerHTML = '';
+            }
+        }
+
         document.getElementById('at-input').addEventListener('input', () => {
             const inputEl = document.getElementById('at-input');
             handleTemplateInput(inputEl);
@@ -6098,6 +6566,7 @@
             document.getElementById('contactInfo').classList.remove('hidden');
             document.getElementById('terminal').classList.add('hidden');
             document.getElementById('logConsole').classList.add('hidden');
+            document.getElementById('setLocation').classList.add('hidden');
             document.getElementById('bleScan').classList.add('hidden');
             document.getElementById('bleScanOverlay').classList.add('hidden');
             document.getElementById('backBtn').classList.remove('hidden');
@@ -7133,6 +7602,7 @@
             document.getElementById('contactInfo').classList.add('hidden');
             document.getElementById('terminal').classList.add('hidden');
             document.getElementById('logConsole').classList.add('hidden');
+            document.getElementById('setLocation').classList.add('hidden');
             document.getElementById('bleScan').classList.add('hidden');
             document.getElementById('bleScanOverlay').classList.add('hidden');
             document.getElementById('backBtn').classList.remove('hidden');
@@ -7393,10 +7863,33 @@
 
         // Init
         setStatus(false, 'Disconnected');
+        initAndroidBackButtonHandler();
         histories.set(SYSTEM_KEY, []);
         renderContacts();
         addMessage("Ready. Press Connect to start.", "sys", SYSTEM_KEY);
         showContacts();
+
+        document.getElementById('setLocationSearchBtn')?.addEventListener('click', () => {
+            searchSetLocation();
+        });
+        document.getElementById('setLocationSearchInput')?.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                searchSetLocation();
+            }
+        });
+        document.getElementById('setLocationValueInput')?.addEventListener('input', () => {
+            if (setLocationInputDebounceTimer) clearTimeout(setLocationInputDebounceTimer);
+            setLocationInputDebounceTimer = setTimeout(() => {
+                previewSetLocationFromInput();
+            }, 250);
+        });
+        document.getElementById('setLocationValueInput')?.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                applySetLocationSelection();
+            }
+        });
 
         const contactSearchEl = document.getElementById('contactSearch');
         contactSearchEl.addEventListener('input', () => {
