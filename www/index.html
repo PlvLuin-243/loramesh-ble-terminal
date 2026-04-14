@@ -911,7 +911,8 @@
         }
 
         /* Terminal window styles */
-        #terminal-window {
+        #terminal-window,
+        #log-console-window {
             flex: 1;
             padding: 14px 12px;
             overflow-y: auto;
@@ -1841,6 +1842,16 @@
                     </div>
                 </div>
             </div>
+
+            <div class="settings-section" onclick="showLogConsole();">
+                <strong>Log Console <i class="material-icons" style="font-size: 18px; margin-left: auto;">receipt_long</i></strong>
+                <div class="settings-list">
+                    <div class="field" style="padding: 10px 0; text-align: center; color: rgba(0,0,0,0.55);">
+                        <i class="material-icons" style="font-size: 32px; display: block; margin-bottom: 8px;">list_alt</i>
+                        Tap to view BLE send/receive history
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1884,6 +1895,11 @@
                 <i class="material-icons" aria-hidden="true">send</i>
             </div>
         </div>
+    </div>
+
+    <!-- Screen 2.6: BLE Log Console -->
+    <div id="logConsole" class="screen hidden">
+        <div id="log-console-window" aria-label="BLE TX RX log output"></div>
     </div>
 
     <!-- Screen 4: Contact Info -->
@@ -2228,6 +2244,7 @@
             if (!document.getElementById('settings').classList.contains('hidden')) return 'settings';
             if (!document.getElementById('contactInfo').classList.contains('hidden')) return 'contactInfo';
             if (!document.getElementById('terminal').classList.contains('hidden')) return 'terminal';
+            if (!document.getElementById('logConsole').classList.contains('hidden')) return 'logConsole';
             return 'contacts';
         }
 
@@ -2236,8 +2253,12 @@
                 closeBleScanScreen();
                 return;
             }
-            if (document.getElementById('terminal').classList.contains('hidden')) showContacts();
-            else showPreviousScreen();
+            if (!document.getElementById('terminal').classList.contains('hidden') ||
+                !document.getElementById('logConsole').classList.contains('hidden')) {
+                showPreviousScreen();
+                return;
+            }
+            showContacts();
         }
 
         function showBleScanScreen() {
@@ -2702,6 +2723,7 @@
         let messageIdCounter = 0;
         // contactKey -> latest 10 incoming message signal snapshots
         const recentIncomingMessageInfos = new Map();
+        const BLE_LOG_MAX_MESSAGES = 1200;
 
         // ── Edit Parameter Modal State ─────────────────────────────────────────
         let editingParam = null;  // { name, command, currentValue, field }
@@ -2921,6 +2943,22 @@
             document.getElementById('msgInfoName').textContent = c.name || 'Unknown';
             document.getElementById('msgInfoPrefix').textContent = pubkeyPrefix(contactKey) || '—';
             modal.classList.remove('hidden');
+
+            // Lazy-load CONINF only when user explicitly opens message info.
+            if (charTX && isBleConnected()) {
+                document.getElementById('msgInfoRSSI').textContent = 'Loading...';
+                document.getElementById('msgInfoSNR').textContent = 'Loading...';
+                document.getElementById('msgInfoDistance').textContent = 'Loading...';
+
+                await captureIncomingMessageSignalInfo(contactKey, messageId);
+
+                const refreshed = (histories.get(contactKey) || []).find(m => m.id === messageId);
+                const refreshedInfo = refreshed?.signalInfo;
+                document.getElementById('msgInfoRSSI').textContent = refreshedInfo?.rssi || 'N/A';
+                document.getElementById('msgInfoSNR').textContent = refreshedInfo?.snr || 'N/A';
+                document.getElementById('msgInfoDistance').textContent = refreshedInfo?.distance || 'N/A';
+                document.getElementById('msgInfoTime').textContent = refreshedInfo?.time || formatMessageTime(entry.ts);
+            }
         }
 
         function closeMessageSignalModal() {
@@ -3905,6 +3943,7 @@
             document.getElementById('settings').classList.add('hidden');
             document.getElementById('contactInfo').classList.add('hidden');
             document.getElementById('terminal').classList.add('hidden');
+            document.getElementById('logConsole').classList.add('hidden');
             document.getElementById('bleScan').classList.add('hidden');
             document.getElementById('bleScanOverlay').classList.add('hidden');
             document.getElementById('backBtn').classList.add('hidden');
@@ -4234,6 +4273,7 @@
             document.getElementById('settings').classList.add('hidden');
             document.getElementById('contactInfo').classList.add('hidden');
             document.getElementById('terminal').classList.add('hidden');
+            document.getElementById('logConsole').classList.add('hidden');
             document.getElementById('bleScan').classList.add('hidden');
             document.getElementById('bleScanOverlay').classList.add('hidden');
             document.getElementById('backBtn').classList.remove('hidden');
@@ -4309,6 +4349,7 @@
             document.getElementById('settings').classList.add('hidden');
             document.getElementById('contactInfo').classList.add('hidden');
             document.getElementById('terminal').classList.remove('hidden');
+            document.getElementById('logConsole').classList.add('hidden');
             document.getElementById('bleScan').classList.add('hidden');
             document.getElementById('bleScanOverlay').classList.add('hidden');
             
@@ -4324,6 +4365,37 @@
             
             document.getElementById('headerTitle').textContent = 'Terminal';
             document.getElementById('terminal-input').focus();
+        }
+
+        function showLogConsole() {
+            // Save current screen before switching to log console
+            if (!document.getElementById('contacts').classList.contains('hidden')) previousScreen = 'contacts';
+            else if (!document.getElementById('chat').classList.contains('hidden')) previousScreen = 'chat';
+            else if (!document.getElementById('settings').classList.contains('hidden')) previousScreen = 'settings';
+            else if (!document.getElementById('contactInfo').classList.contains('hidden')) previousScreen = 'contactInfo';
+
+            document.getElementById('contacts').classList.add('hidden');
+            document.getElementById('chat').classList.add('hidden');
+            document.getElementById('settings').classList.add('hidden');
+            document.getElementById('contactInfo').classList.add('hidden');
+            document.getElementById('terminal').classList.add('hidden');
+            document.getElementById('logConsole').classList.remove('hidden');
+            document.getElementById('bleScan').classList.add('hidden');
+            document.getElementById('bleScanOverlay').classList.add('hidden');
+
+            document.getElementById('backBtn').classList.remove('hidden');
+            document.querySelector('.header-title').classList.remove('hidden');
+            document.getElementById('chatHeader').classList.add('hidden');
+            document.getElementById('connectBtn').classList.add('hidden');
+            document.getElementById('settingsBtn').classList.add('hidden');
+            document.getElementById('syncContactsBtn').classList.add('hidden');
+            document.getElementById('addContactBtn').classList.add('hidden');
+            document.getElementById('advertBtn').classList.add('hidden');
+            document.getElementById('clearChannelsBtn').classList.add('hidden');
+
+            document.getElementById('headerTitle').textContent = 'Log Console';
+            const logWindow = document.getElementById('log-console-window');
+            if (logWindow) logWindow.scrollTop = logWindow.scrollHeight;
         }
 
         function showPreviousScreen() {
@@ -4769,6 +4841,8 @@
             const trimmed = line.trim();
             if (!trimmed) return;
 
+            appendBleLogMessage(`[RX] ${trimmed}`, 'received');
+
             // Update response tracking for command queue
             lastCommandResponse = trimmed;
             lastCommandResponseTime = Date.now();
@@ -4931,9 +5005,6 @@
                     
                     const messageId = addMessage(messageText, messageType, routeKey);
                     addChannelFeedMessage(routeKey, messageText, messageType, new Date(), true);
-                    if (messageType === 'esp' && messageId) {
-                        captureIncomingMessageSignalInfo(routeKey, messageId);
-                    }
                     
                     const isViewingChat = !document.getElementById('chat').classList.contains('hidden');
                     const isCurrent = isViewingChat && activeKey === routeKey;
@@ -5290,11 +5361,8 @@
                 if (routeKey) {
                     const isViewingChat = !document.getElementById('chat').classList.contains('hidden');
                     const isCurrent = isViewingChat && activeKey === routeKey;
-                    const messageId = addMessage(trimmed, 'esp', routeKey);
+                    addMessage(trimmed, 'esp', routeKey);
                     addChannelFeedMessage(routeKey, trimmed, 'esp', new Date(), true);
-                    if (messageId) {
-                        captureIncomingMessageSignalInfo(routeKey, messageId);
-                    }
                     if (!isCurrent) incrementUnread(routeKey);
                     return;
                 }
@@ -5316,11 +5384,8 @@
                     if (routeKey) {
                         const isViewingChat = !document.getElementById('chat').classList.contains('hidden');
                         const isCurrent = isViewingChat && activeKey === routeKey;
-                        const messageId = addMessage(msgText || trimmed, 'esp', routeKey);
+                        addMessage(msgText || trimmed, 'esp', routeKey);
                         addChannelFeedMessage(routeKey, msgText || trimmed, 'esp', new Date(), true);
-                        if (messageId) {
-                            captureIncomingMessageSignalInfo(routeKey, messageId);
-                        }
                         if (!isCurrent) incrementUnread(routeKey);
                         return;
                     }
@@ -6016,6 +6081,7 @@
             document.getElementById('settings').classList.add('hidden');
             document.getElementById('contactInfo').classList.remove('hidden');
             document.getElementById('terminal').classList.add('hidden');
+            document.getElementById('logConsole').classList.add('hidden');
             document.getElementById('bleScan').classList.add('hidden');
             document.getElementById('bleScanOverlay').classList.add('hidden');
             document.getElementById('backBtn').classList.remove('hidden');
@@ -6309,6 +6375,7 @@
             // Log command sent to BLE
             console.log(`[BLE TX] ${str.trim()}`);
             appendTerminalMessage(`[TX] ${str.trim()}`, 'sent');
+            appendBleLogMessage(`[TX] ${str.trim()}`, 'sent');
 
             const bytes = new TextEncoder().encode(str);
 
@@ -6882,6 +6949,33 @@
             terminalWindow.scrollTop = terminalWindow.scrollHeight;
         }
 
+        function appendBleLogMessage(text, type = 'received') {
+            const logWindow = document.getElementById('log-console-window');
+            if (!logWindow) return;
+
+            const msgEl = document.createElement('div');
+            msgEl.className = `terminal-msg terminal-${type}`;
+
+            const ts = resolveHybridTimestamp(text);
+            const main = document.createElement('div');
+            main.className = 'terminal-msg-main';
+            main.textContent = text;
+
+            const time = document.createElement('div');
+            time.className = 'terminal-msg-time';
+            time.textContent = formatMessageTime(ts);
+
+            msgEl.appendChild(main);
+            msgEl.appendChild(time);
+            logWindow.appendChild(msgEl);
+
+            while (logWindow.children.length > BLE_LOG_MAX_MESSAGES) {
+                logWindow.removeChild(logWindow.firstChild);
+            }
+
+            logWindow.scrollTop = logWindow.scrollHeight;
+        }
+
         /**
          * Send raw AT command from terminal input (no contact prefix routing)
          * Sends exactly what user types, displays exactly what device responds
@@ -7022,6 +7116,7 @@
             document.getElementById('settings').classList.remove('hidden');
             document.getElementById('contactInfo').classList.add('hidden');
             document.getElementById('terminal').classList.add('hidden');
+            document.getElementById('logConsole').classList.add('hidden');
             document.getElementById('bleScan').classList.add('hidden');
             document.getElementById('bleScanOverlay').classList.add('hidden');
             document.getElementById('backBtn').classList.remove('hidden');
