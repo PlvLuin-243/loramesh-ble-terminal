@@ -498,9 +498,12 @@
 
         .bottom-nav {
             display: flex;
-            background: #fff;
-            border-top: 2px solid #ccc;
-            padding-bottom: env(safe-area-inset-bottom);
+            background: rgba(255,255,255,0.96);
+            border: 1px solid #d8dde3;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+            margin: 0 10px 8px;
+            padding: 4px 6px calc(env(safe-area-inset-bottom) + 8px);
         }
 
         .bottom-nav .nav-item {
@@ -509,30 +512,39 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 8px 0;
+            padding: 10px 0;
             color: #888;
             cursor: pointer;
             transition: color 0.2s, background 0.2s;
             user-select: none;
             -webkit-tap-highlight-color: transparent;
-        }
-
-        .bottom-nav .nav-item:not(:last-child) {
-            border-right: 2px solid #ccc;
+            border-radius: 10px;
         }
 
         .bottom-nav .nav-item:active { background: rgba(0,0,0,0.05); }
 
-        .bottom-nav .nav-item.active { color: var(--header); }
+        .bottom-nav .nav-item.active {
+            background: rgba(0, 102, 204, 0.10);
+            color: var(--header);
+        }
 
         .bottom-nav .nav-item i {
-            font-size: 24px;
+            font-size: 25px;
             margin-bottom: 2px;
         }
 
         .bottom-nav .nav-item span {
+            display: block;
             font-size: 11px;
-            font-weight: 500;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+
+        #navTabContacts i { color: #3f51b5; }
+        #navTabChannels i { color: #00897b; }
+        #navTabMap i { color: #ef6c00; }
+        .bottom-nav .nav-item.active i {
+            filter: saturate(1.15);
         }
 
         .map-label {
@@ -779,6 +791,8 @@
 
         .msg-main {
             white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .msg-time {
@@ -941,6 +955,8 @@
 
         .terminal-msg-main {
             white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .terminal-msg-time {
@@ -1658,15 +1674,15 @@
         </div>
 
         <div class="bottom-nav">
-            <div id="navTabContacts" class="nav-item active" onclick="switchMainTab('contacts')">
+            <div id="navTabContacts" class="nav-item active" onclick="switchMainTab('contacts')" title="Contact List" aria-label="Contact List">
                 <i class="material-icons">format_list_bulleted</i>
                 <span>CONTACT LIST</span>
             </div>
-            <div id="navTabChannels" class="nav-item" onclick="openChannelsChat()">
+            <div id="navTabChannels" class="nav-item" onclick="openChannelsChat()" title="Channels" aria-label="Channels">
                 <i class="material-icons">groups</i>
                 <span>CHANNELS</span>
             </div>
-            <div id="navTabMap" class="nav-item" onclick="switchMainTab('map')">
+            <div id="navTabMap" class="nav-item" onclick="switchMainTab('map')" title="Map" aria-label="Map">
                 <i class="material-icons">map</i>
                 <span>MAP</span>
             </div>
@@ -7306,6 +7322,7 @@
             'AT+SYSLGD?',
             'AT+SYSLGE?',
             'AT+SYSLGA?',
+            'AT+SYSLGO?',
             'AT+SYSTIME?',
             'AT+SYSSTIME=timestamp',
             'AT+SYSWARN=level',
